@@ -1,6 +1,10 @@
 <h2 align="center">hualai（话来）：会看项目的 Claude Code 提示词增强 Skill</h2>
 
 <p align="center">
+  <a href="./README_en.md">English</a> | <b>中文</b>
+</p>
+
+<p align="center">
   <a href="https://github.com/jiangwanyutao/hualai"><img src="https://img.shields.io/badge/Project%20Page-GitHub-blue" alt="Project Page"></a>
   <a href="https://docs.claude.com/en/docs/claude-code/skills"><img src="https://img.shields.io/badge/Claude%20Code-Skill-D97757" alt="Claude Code Skill"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-green" alt="License"></a>
