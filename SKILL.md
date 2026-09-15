@@ -14,8 +14,8 @@ $ARGUMENTS
 FLAGS: strip any leading flags from the draft (any order) before using it.
 - `--creative` → CREATIVE mode; otherwise CONCISE mode.
 - Scan method (default `auto`):
-  - `auto`: your FIRST tool call MUST be `codegraph_status` (with projectPath if the target project is not the current directory). If it returns index stats, use CODEGRAPH scan; if the tool is unavailable or errors / reports no index, use GREP scan.
-  - `--grep`: force GREP scan.
+  - `auto`: first judge the draft WITHOUT calling any tool. Treat it as CLEAR and skip STEP 1 (same as `--no-scan`) when either (a) it does not depend on this codebase at all (e.g. 写周报, a general question, a brand-new standalone project), or (b) it already names the exact files / symbols / paths to change AND the expected result. Otherwise — vague references like 登录页, 那个接口, 某个按钮, or module names that need lookup — scan: your FIRST tool call MUST be `codegraph_status` (with projectPath if the target project is not the current directory). If it returns index stats, use CODEGRAPH scan; if the tool is unavailable or errors / reports no index, use GREP scan.
+  - `--grep`: force GREP scan (never skipped, even for a clear draft).
   - `--no-scan`: skip STEP 1 entirely; rewrite from the draft and this conversation only, without a 项目上下文 part.
 
 STEP 1 — PROJECT DISCOVERY (read-only, quick, before rewriting):

@@ -23,8 +23,8 @@ git clone https://github.com/jiangwanyutao/hualai ~/.claude/skills/hualai
 |---|---|
 | （默认） | 简洁模式，约 800 字 + 项目上下文 |
 | `--creative` | 创意模式，充分展开需求、边界与验收标准 |
-| （默认扫描 auto） | 有 [codegraph](https://www.npmjs.com/package/@colbymchenry/codegraph) 索引就用它，否则退回 Grep |
-| `--grep` | 强制用 Grep / Glob / Read 查项目 |
+| （默认扫描 auto） | 草稿已写明文件与改动、或与代码无关（如写周报）时跳过查项目；否则有 [codegraph](https://www.npmjs.com/package/@colbymchenry/codegraph) 索引就用它，没有就退回 Grep |
+| `--grep` | 强制用 Grep / Glob / Read 查项目（清楚的草稿也查） |
 | `--no-scan` | 不查项目，纯改写，最快 |
 
 ## 输出示例
