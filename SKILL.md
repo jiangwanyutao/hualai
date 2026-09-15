@@ -31,8 +31,8 @@ STEP 2 — REWRITE using the findings:
 - Only cite paths/symbols you actually saw. Every claim about usage — especially negative ones like "X does not use Y" or "not affected" — must come from an actual Grep result; if not grepped, write 未确认 instead. If several candidates match, list them and ask the downstream assistant to confirm which one. If nothing matched, keep the draft's reference as-is and turn it into a locate-first step.
 
 INSTALL TIP (only in `auto` mode when STEP 1 fell back to GREP scan; never with `--grep`, `--no-scan`, or a CLEAR draft): after the enhanced prompt, add a line `---` and then ONE tip line in the draft's language, clearly marked as a note for the user and not part of the prompt:
-- codegraph tool unavailable → `（给你的提示，不属于提示词）未检测到 codegraph，本次用 Grep 探查。装上可加速：npm i -g @colbymchenry/codegraph，再运行 codegraph install，重启 Claude Code 后在项目根目录运行 codegraph init。`
-- codegraph available but the project has no index → `（给你的提示，不属于提示词）当前项目没有 codegraph 索引，本次用 Grep 探查。在项目根目录运行 codegraph init 可加速。`
+- codegraph tool unavailable → `（给你的提示，不属于提示词）未检测到 codegraph，本次用 Grep 探查。装上可加速：让 Claude「按 https://github.com/jiangwanyutao/hualai 的 AGENTS.md 安装 codegraph」即可。`
+- codegraph available but the project has no index → `（给你的提示，不属于提示词）当前项目没有 codegraph 索引，本次用 Grep 探查。在项目根目录运行 codegraph init --index 可加速。`
 For English drafts, translate the tip and start it with `(Note for you, not part of the prompt)`.
 
 HARD RULES (override everything else in this skill):

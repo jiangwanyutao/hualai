@@ -53,6 +53,14 @@ hualai 是一个 **Claude Code Skill**：你随手写一句草稿，它先**只�
 
 ### 安装
 
+**让 Claude 帮你装（推荐，连 codegraph 依赖一起装好）**，在 Claude Code 里发一句：
+
+```text
+安装 https://github.com/jiangwanyutao/hualai ，按仓库里的 AGENTS.md 操作
+```
+
+**手动装：**
+
 ```bash
 git clone https://github.com/jiangwanyutao/hualai ~/.claude/skills/hualai
 ```
@@ -61,8 +69,8 @@ git clone https://github.com/jiangwanyutao/hualai ~/.claude/skills/hualai
 >
 > ```bash
 > npm i -g @colbymchenry/codegraph   # 1. 装 CLI
-> codegraph install                  # 2. 接入 Claude Code，之后重启
-> codegraph init                     # 3. 在项目根目录建索引
+> codegraph install --target claude --location global --yes   # 2. 接入 Claude Code，之后重启
+> codegraph init --index             # 3. 在项目根目录建索引
 > ```
 
 ### 使用

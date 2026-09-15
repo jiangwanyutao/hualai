@@ -53,6 +53,14 @@ The name comes from the Chinese「话来」(*huà lái*, "here come the words") 
 
 ### Installation
 
+**Let Claude install it (recommended, includes the codegraph dependency)**. Send this in Claude Code:
+
+```text
+Install https://github.com/jiangwanyutao/hualai, follow the repo's AGENTS.md
+```
+
+**Manual install:**
+
 ```bash
 git clone https://github.com/jiangwanyutao/hualai ~/.claude/skills/hualai
 ```
@@ -61,8 +69,8 @@ git clone https://github.com/jiangwanyutao/hualai ~/.claude/skills/hualai
 >
 > ```bash
 > npm i -g @colbymchenry/codegraph   # 1. install the CLI
-> codegraph install                  # 2. wire it into Claude Code, then restart
-> codegraph init                     # 3. build the index in your project root
+> codegraph install --target claude --location global --yes   # 2. wire it into Claude Code, then restart
+> codegraph init --index             # 3. build the index in your project root
 > ```
 
 ### Usage
