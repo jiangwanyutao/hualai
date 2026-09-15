@@ -56,7 +56,7 @@ hualai 是一个 **Claude Code Skill**：你随手写一句草稿，它先**只�
 **让 Claude 帮你装（推荐，连 codegraph 依赖一起装好）**，在 Claude Code 里发一句：
 
 ```text
-安装 https://github.com/jiangwanyutao/hualai ，按仓库里的 AGENTS.md 操作
+安装 hualai，按 https://raw.githubusercontent.com/jiangwanyutao/hualai/main/AGENTS.md 操作
 ```
 
 **手动装：**

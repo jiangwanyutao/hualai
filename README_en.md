@@ -56,7 +56,7 @@ The name comes from the Chinese「话来」(*huà lái*, "here come the words") 
 **Let Claude install it (recommended, includes the codegraph dependency)**. Send this in Claude Code:
 
 ```text
-Install https://github.com/jiangwanyutao/hualai, follow the repo's AGENTS.md
+Install hualai by following https://raw.githubusercontent.com/jiangwanyutao/hualai/main/AGENTS.md
 ```
 
 **Manual install:**

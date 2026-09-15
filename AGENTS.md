@@ -2,6 +2,8 @@
 
 This file is for AI agents (Claude Code, etc.) asked to install [hualai](https://github.com/jiangwanyutao/hualai). Follow the steps in order and report the result of each step's check to the user.
 
+Read repo files via raw URLs (e.g. `https://raw.githubusercontent.com/jiangwanyutao/hualai/main/SKILL.md`); do not clone into the current directory just to read them. If you already cloned a temporary copy outside the target directory below, delete that copy (only the one you created) after step 1.
+
 hualai = one Claude Code skill (`SKILL.md`) + one optional dependency: the **codegraph** MCP server (code index that speeds up project discovery). Without codegraph the skill still works and falls back to Grep.
 
 ## 1. Install the skill
