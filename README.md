@@ -1,16 +1,61 @@
-# hualai（话来）
+<h2 align="center">hualai（话来）：会看项目的 Claude Code 提示词增强 Skill</h2>
 
-Claude Code 提示词增强 skill：先只读探查当前项目（技术栈、相关文件），再把随手写的草稿改写成清晰、具体、可执行的提示词。只输出改写结果，不执行任务、不改文件。
+<p align="center">
+  <a href="https://github.com/jiangwanyutao/hualai"><img src="https://img.shields.io/badge/Project%20Page-GitHub-blue" alt="Project Page"></a>
+  <a href="https://docs.claude.com/en/docs/claude-code/skills"><img src="https://img.shields.io/badge/Claude%20Code-Skill-D97757" alt="Claude Code Skill"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-green" alt="License"></a>
+  <a href="https://github.com/jiangwanyutao/hualai/stargazers"><img src="https://img.shields.io/github/stars/jiangwanyutao/hualai?style=flat" alt="Stars"></a>
+</p>
 
-## 安装
+hualai 是一个 **Claude Code Skill**：你随手写一句草稿，它先**只读探查当前项目**（技术栈、相关文件、全局样式覆盖、共用引用），再把草稿改写成**清晰、具体、可执行**的提示词。它只输出改写结果，不执行任务、不改文件，确认无误后再由你发送。
+
+名字取自「话来」——就像「牛来」一样，一句话招来一个好提示词。
+
+### ✨ 核心特性
+
+- 🔍 **项目感知** — 自动识别技术栈，定位草稿提到的页面、组件、接口，把真实文件路径和行号写进提示词
+- 🧭 **索引加速** — 项目有 [codegraph](https://www.npmjs.com/package/@colbymchenry/codegraph) 索引时优先使用，没有则退回 Grep，也可手动指定
+- ⚡ **清楚草稿跳过探查** — 草稿已写明文件与改动、或与代码无关（如写周报）时直接改写，约 12 秒
+- 🛡️ **防编造** — 只引用真实看到的路径；「没用到 / 不受影响」这类否定结论必须有 Grep 结果，否则标注「未确认」
+- 📖 **术语补全** — 草稿里的团队黑话、内部模块名，用探查结果补一行定义；查不到标注「需确认含义」
+- ✂️ **多目标拆分** — 一句话混了几个目标时，拆成带各自完成标准的编号子任务，逐个完成验证
+- 🎨 **两种风格** — 简洁模式（约 800 字）适合日常；创意模式充分展开需求、边界与验收标准
+- 🌐 **保持原语言** — 中文草稿输出中文，代码、路径、报错原文逐字保留
+
+### 最新动态
+
+* **[2026.09]** 🔥 清楚的草稿自动跳过项目探查，纯改写场景提速约 3 倍
+* **[2026.09]** 🎉 新增术语定义补全与多目标拆分规则
+* **[2026.09]** 🎉 首次发布：项目探查 + codegraph 索引 + 三种扫描方式
+
+---
+
+## 目录
+
+- [快速开始](#-快速开始)
+  - [安装](#安装)
+  - [使用](#使用)
+- [参数说明](#%EF%B8%8F-参数说明)
+- [工作原理](#-工作原理)
+- [实测数据](#-实测数据)
+- [相关项目](#-相关项目)
+- [局限性](#%EF%B8%8F-局限性)
+- [许可证](#-许可证)
+- [致谢](#-致谢)
+
+---
+
+## 🚀 快速开始
+
+### 安装
 
 ```bash
 git clone https://github.com/jiangwanyutao/hualai ~/.claude/skills/hualai
 ```
 
-重启 Claude Code 后输入 `/hualai` 即可使用。
+> **环境要求：** [Claude Code](https://docs.claude.com/en/docs/claude-code)。安装后重启 Claude Code，输入 `/hualai` 即可看到。可选安装 codegraph 并在项目中建立索引以启用索引加速。
 
-## 用法
+### 使用
 
 ```text
 /hualai 改下登录页的登录按钮，颜色太淡了
@@ -19,15 +64,7 @@ git clone https://github.com/jiangwanyutao/hualai ~/.claude/skills/hualai
 /hualai --no-scan 帮我写个周报
 ```
 
-| 参数 | 作用 |
-|---|---|
-| （默认） | 简洁模式，约 800 字 + 项目上下文 |
-| `--creative` | 创意模式，充分展开需求、边界与验收标准 |
-| （默认扫描 auto） | 草稿已写明文件与改动、或与代码无关（如写周报）时跳过查项目；否则有 [codegraph](https://www.npmjs.com/package/@colbymchenry/codegraph) 索引就用它，没有就退回 Grep |
-| `--grep` | 强制用 Grep / Glob / Read 查项目（清楚的草稿也查） |
-| `--no-scan` | 不查项目，纯改写，最快 |
-
-## 输出示例
+#### 🗣️ 输出示例
 
 草稿：`改下登录页的登录按钮，颜色太淡了`
 
@@ -44,12 +81,103 @@ git clone https://github.com/jiangwanyutao/hualai ~/.claude/skills/hualai
 1. 先确认"淡"的原因再改……
 ```
 
-## 设计要点
+---
+
+## ⚙️ 参数说明
+
+参数可叠加，写在草稿前面，顺序不限。
+
+| 参数 | 作用 |
+|---|---|
+| （默认） | **简洁模式**，约 800 字 + 项目上下文 |
+| `--creative` | **创意模式**，充分展开需求、边界与验收标准 |
+| （默认扫描 `auto`） | 草稿清楚时跳过探查；否则有 codegraph 索引就用，没有就退回 Grep |
+| `--grep` | 强制用 Grep / Glob / Read 查项目（清楚的草稿也查） |
+| `--no-scan` | 不查项目，纯改写，最快 |
+
+---
+
+## 📖 工作原理
+
+```text
+草稿 ─→ 解析参数 ─→ 判断是否清楚
+                      ├─ 清楚 ─────────────────────────────┐
+                      └─ 模糊 ─→ codegraph_status           │
+                                  ├─ 有索引 → codegraph_context
+                                  └─ 无索引 → Grep / Glob    │
+                                        ↓                    │
+                              全项目 Grep 类名/标识符          │
+                              （全局覆盖 + 共用引用）          │
+                                        ↓                    ↓
+                              改写：项目上下文 + 术语定义 + 子任务拆分 + 完成标准
+```
 
 - 探查只用只读工具（Read / Glob / Grep / codegraph），约 10 次调用内结束。
-- 只引用真实看到的路径；"没用到 / 不受影响"这类否定结论必须有 Grep 结果，否则标注「未确认」。
-- 保持草稿原语言、原意图、原任务阶段；代码、路径、报错原文逐字保留。
+- 保持草稿的原意图与任务阶段：不会把「实现」改成「只做计划」，也不会把「先分析」变成「直接改」。
 
-## 致谢
+---
 
-改写模板移植自 [zcode-plus](https://github.com/Llliao1113/zcode-plus)（MIT），在其基础上增加了项目探查与扫描方式选项。
+## 📊 实测数据
+
+<details>
+<summary><b>扫描方式耗时与工具调用（点击展开）</b></summary>
+
+测试环境：Vue 3 + Spring Boot 中大型项目（约 9800 文件），Claude Code 无头模式 `claude -p`。
+
+| 草稿 | 扫描方式 | 工具调用 | 耗时 |
+|---|---|---|---|
+| 帮我写一份本周工作周报 | auto（判定清楚，跳过） | 0 | 16s |
+| 把 login.scss 第 312 行的 #3b82f6 改成 #2563eb，其他都不动 | auto（判定清楚，跳过） | 0 | 12s |
+| 改下登录页的登录按钮，颜色太淡了 | auto（codegraph） | 10 | 41s |
+| 改下登录页的登录按钮，颜色太淡了 | `--grep` | 9 | 42s |
+| 改下登录页的登录按钮，颜色太淡了 | `--no-scan` | 0 | 15s |
+
+</details>
+
+<details>
+<summary><b>防编造规则的由来（点击展开）</b></summary>
+
+| 问题 | 修复 |
+|---|---|
+| 只看组件内样式，漏掉全局 `!important` 覆盖 | 找到目标后必须全项目 Grep 其类名 / 标识符 |
+| 未经查证就断言「某文件没用到这个类」 | 否定结论必须来自真实 Grep 结果，否则写「未确认」 |
+| 「有索引就用 codegraph」被模型跳过 | 改为硬性步骤：第一个工具必须是 `codegraph_status` |
+
+</details>
+
+---
+
+## 🌟 相关项目
+
+| 项目 | 说明 |
+|---|---|
+| [**zcode-plus**](https://github.com/Llliao1113/zcode-plus) | ZCode 桌面版一键提示词增强（CDP 注入），本项目改写模板的来源 |
+| [**claude-code-prompt-improver**](https://github.com/severity1/claude-code-prompt-improver) | Hook + Skill，自动判断提示词清晰度，模糊时调研并提问 |
+| [**prompt-improver**](https://github.com/ndpvt-web/prompt-improver) | 改写前通过提问澄清前提，含第一性原理模式 |
+| [**flowkit**](https://github.com/FrizzleFur/flowkit) | AI 工作流编排工具集，其 prompt 模块启发了术语定义与多目标拆分规则 |
+| [**codegraph**](https://www.npmjs.com/package/@colbymchenry/codegraph) | 代码知识图谱 MCP，本项目的可选索引后端 |
+
+---
+
+## ⚠️ 局限性
+
+- 模型输出存在波动，同一草稿多次运行结果可能略有不同，发送前请过目。
+- 探查需要 30–50 秒；只想润色文字请用 `--no-scan`。
+- 对 CSS 类名、样式覆盖这类需求，codegraph 并不比 Grep 快，其优势在后端调用链查询。
+- Claude Code 不提供替换输入框内容的接口，改写结果需手动复制后发送。
+
+---
+
+## 📄 许可证
+
+本项目基于 [MIT](LICENSE) 协议发布。改写模板部分移植自 zcode-plus（MIT，Copyright (c) 2026 Llliao1113）。
+
+## 🙏 致谢
+
+- [zcode-plus](https://github.com/Llliao1113/zcode-plus) 提供了简洁 / 创意两套增强模板
+- [flowkit](https://github.com/FrizzleFur/flowkit) 的 prompt 模块提供了术语补全与单任务拆分的思路
+- [codegraph](https://www.npmjs.com/package/@colbymchenry/codegraph) 提供代码索引能力
+
+## ⭐ Star 历史
+
+[![Star History Chart](https://api.star-history.com/svg?repos=jiangwanyutao/hualai&type=Date)](https://star-history.com/#jiangwanyutao/hualai&Date)
