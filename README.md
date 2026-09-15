@@ -57,7 +57,13 @@ hualai 是一个 **Claude Code Skill**：你随手写一句草稿，它先**只�
 git clone https://github.com/jiangwanyutao/hualai ~/.claude/skills/hualai
 ```
 
-> **环境要求：** [Claude Code](https://docs.claude.com/en/docs/claude-code)。安装后重启 Claude Code，输入 `/hualai` 即可看到。可选安装 codegraph 并在项目中建立索引以启用索引加速。
+> **环境要求：** [Claude Code](https://docs.claude.com/en/docs/claude-code)。安装后重启 Claude Code，输入 `/hualai` 即可看到。可选安装 codegraph 并在项目中建立索引以启用索引加速（没装时 hualai 会在结果末尾提示安装方法）：
+>
+> ```bash
+> npm i -g @colbymchenry/codegraph   # 1. 装 CLI
+> codegraph install                  # 2. 接入 Claude Code，之后重启
+> codegraph init                     # 3. 在项目根目录建索引
+> ```
 
 ### 使用
 
@@ -97,7 +103,7 @@ git clone https://github.com/jiangwanyutao/hualai ~/.claude/skills/hualai
 | `--creative` | **创意模式**，充分展开需求、边界与验收标准 |
 | （默认扫描 `auto`） | 草稿清楚时跳过探查；否则有 codegraph 索引就用，没有就退回 Grep |
 | `--grep` | 强制用 Grep / Glob / Read 查项目（清楚的草稿也查） |
-| `--no-scan` | 不查项目，纯改写，最快 |
+| `--no-scan` | 不查项目，纯改写，最快（与 `--grep` 同时给时以 `--grep` 为准） |
 
 ---
 
@@ -168,7 +174,8 @@ git clone https://github.com/jiangwanyutao/hualai ~/.claude/skills/hualai
 - 模型输出存在波动，同一草稿多次运行结果可能略有不同，发送前请过目。
 - 探查需要 30–50 秒；只想润色文字请用 `--no-scan`。
 - 对 CSS 类名、样式覆盖这类需求，codegraph 并不比 Grep 快，其优势在后端调用链查询。
-- Claude Code 不提供替换输入框内容的接口，改写结果需手动复制后发送。
+- 改写结果不用手动复制：直接回复「照上面的提示词执行」即可。想先改几句再发，仍需复制。
+- 「只读」靠提示词约束：`allowed-tools` 只是免确认放行，并不禁用其他工具，在跳过权限确认的模式下尤其要留意。
 
 ---
 

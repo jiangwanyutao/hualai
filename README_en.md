@@ -57,7 +57,13 @@ The name comes from the Chinese「话来」(*huà lái*, "here come the words") 
 git clone https://github.com/jiangwanyutao/hualai ~/.claude/skills/hualai
 ```
 
-> **Requirements:** [Claude Code](https://docs.claude.com/en/docs/claude-code). Restart Claude Code after installing, then type `/hualai`. Optionally install codegraph and index your project to enable index acceleration.
+> **Requirements:** [Claude Code](https://docs.claude.com/en/docs/claude-code). Restart Claude Code after installing, then type `/hualai`. Optionally install codegraph and index your project to enable index acceleration (if it is missing, hualai adds an install tip at the end of its output):
+>
+> ```bash
+> npm i -g @colbymchenry/codegraph   # 1. install the CLI
+> codegraph install                  # 2. wire it into Claude Code, then restart
+> codegraph init                     # 3. build the index in your project root
+> ```
 
 ### Usage
 
@@ -97,7 +103,7 @@ Flags can be combined and placed before the draft in any order.
 | `--creative` | **Creative mode**, fully develops requirements, boundaries, and acceptance criteria |
 | (default scan `auto`) | Skips exploration for clear drafts; otherwise uses the codegraph index if present, else Grep |
 | `--grep` | Force Grep / Glob / Read exploration (even for clear drafts) |
-| `--no-scan` | No exploration, pure rewrite, fastest |
+| `--no-scan` | No exploration, pure rewrite, fastest (`--grep` wins if both are given) |
 
 ---
 
@@ -168,7 +174,8 @@ Environment: a mid-to-large Vue 3 + Spring Boot project (~9,800 files), Claude C
 - Model output varies; the same draft may produce slightly different results across runs, so review before sending.
 - Exploration takes 30–50 seconds; use `--no-scan` if you only want wording polished.
 - For CSS class names and style overrides, codegraph is not faster than Grep; it shines on backend call-chain queries.
-- Claude Code offers no API to replace the input box content, so copy the rewritten prompt and send it manually.
+- No need to copy the result: just reply "run the prompt above". Copy it only if you want to edit it first.
+- Read-only is enforced by the prompt: `allowed-tools` only pre-approves tools and does not block others, so take care in permission-bypass modes.
 
 ---
 
