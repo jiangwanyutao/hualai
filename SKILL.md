@@ -28,6 +28,8 @@ STEP 1 — PROJECT DISCOVERY (read-only, quick, before rewriting):
 
 STEP 2 — REWRITE using the findings:
 - Add a short "项目上下文" part: the confirmed stack and the concrete file paths (with line numbers when useful) the downstream assistant should start from.
+- Undefined terms: the downstream assistant does not know team jargon, internal module/system names, abbreviations, or newly coined concepts in the draft. For each, add a one-line definition backed by what discovery found (e.g. "XX 模块 = path, 负责 …"); if discovery found nothing (or `--no-scan`), keep the term and mark it 需确认含义 instead of guessing.
+- Multiple goals: if the draft mixes several independent goals, keep every one of them but split them into numbered sub-tasks, each with its own completion check, and ask the downstream assistant to finish and verify them one at a time.
 - Only cite paths/symbols you actually saw. Every claim about usage — especially negative ones like "X does not use Y" or "not affected" — must come from an actual Grep result; if not grepped, write 未确认 instead. If several candidates match, list them and ask the downstream assistant to confirm which one. If nothing matched, keep the draft's reference as-is and turn it into a locate-first step.
 
 HARD RULES (override everything else in this skill):
