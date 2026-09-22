@@ -2,19 +2,22 @@
 
 This file is for AI agents (Claude Code, etc.) asked to install [hualai](https://github.com/jiangwanyutao/hualai). Follow the steps in order and report the result of each step's check to the user.
 
-Read repo files via raw URLs (e.g. `https://raw.githubusercontent.com/jiangwanyutao/hualai/main/SKILL.md`); do not clone into the current directory just to read them. If you already cloned a temporary copy outside the target directory below, delete that copy (only the one you created) after step 1.
+Read repo files via raw URLs (e.g. `https://raw.githubusercontent.com/jiangwanyutao/hualai/main/skills/hualai/SKILL.md`); do not clone into the current directory just to read them.
 
-hualai = one Claude Code skill (`SKILL.md`) + one optional dependency: the **codegraph** MCP server (code index that speeds up project discovery). Without codegraph the skill still works and falls back to Grep.
+hualai = one Claude Code plugin (the `hualai` skill + an auto-enhance hook, off by default) + one optional dependency: the **codegraph** MCP server (code index that speeds up project discovery). Without codegraph the skill still works and falls back to Grep.
 
-## 1. Install the skill
+## 1. Install the plugin
 
-Target directory: `~/.claude/skills/hualai` (Windows: `%USERPROFILE%\.claude\skills\hualai`).
+Old install check: if `~/.claude/skills/hualai` exists and is a git clone of this repo, it is the pre-plugin install and clashes with the plugin's name. Tell the user in one line, then delete it. If it exists but is not this repo, stop and ask.
 
-- Not present → `git clone https://github.com/jiangwanyutao/hualai ~/.claude/skills/hualai`
-- Already a git clone of this repo → `git -C ~/.claude/skills/hualai pull`
-- Present but not this repo → stop and ask the user; do not overwrite.
+```bash
+claude plugin marketplace add jiangwanyutao/hualai
+claude plugin install hualai@hualai
+```
 
-Check: `~/.claude/skills/hualai/SKILL.md` exists.
+Already installed → `claude plugin marketplace update hualai`, then `claude plugin update hualai@hualai`.
+
+Check: `claude plugin list` shows `hualai@hualai` as enabled.
 
 ## 2. Install codegraph (dependency)
 
@@ -58,12 +61,13 @@ Check: `codegraph status` shows index statistics.
 
 Tell the user:
 
-1. Restart Claude Code so the skill and the MCP server load.
-2. Try: `/hualai 改下登录页的登录按钮，颜色太淡了`
+1. Restart Claude Code so the plugin and the MCP server load.
+2. Try: `/hualai:hualai 改下登录页的登录按钮，颜色太淡了`
 3. After the rewritten prompt appears, reply "照上面的提示词执行" to run it; no copy-paste needed.
+4. Optional auto-enhance: send `hualai on` (plain message, no slash) to have every message rewritten before it runs; `hualai off` turns it off. It is off by default and adds 30–50s per message.
 
 ## Notes
 
-- `SKILL.md` sets `disable-model-invocation: true`, so hualai does not appear in the model's skill list. That is expected; users invoke it with `/hualai`.
-- Testing in Git Bash on Windows: `claude -p "/hualai ..."` gets `/hualai` rewritten into a file path. Set `MSYS_NO_PATHCONV=1` first.
-- Uninstall: delete `~/.claude/skills/hualai`; `codegraph uninstall` removes codegraph from every agent it configured.
+- `SKILL.md` sets `disable-model-invocation: true`, so hualai does not appear in the model's skill list. That is expected; users invoke it with `/hualai:hualai`.
+- Testing in Git Bash on Windows: `claude -p "/hualai:hualai ..."` gets the slash command rewritten into a file path. Set `MSYS_NO_PATHCONV=1` first.
+- Uninstall: `claude plugin uninstall hualai@hualai`, and delete `~/.claude/hualai-auto-on` if present; `codegraph uninstall` removes codegraph from every agent it configured.

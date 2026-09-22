@@ -1,0 +1,12 @@
+{
+  "name": "hualai",
+  "owner": { "name": "jiangwanyutao" },
+  "description": "hualai（话来）提示词增强插件",
+  "plugins": [
+    {
+      "name": "hualai",
+      "source": "./",
+      "description": "会看项目的提示词增强：先只读探查项目，再把草稿改写成清晰可执行的提示词；可选自动增强每条消息"
+    }
+  ]
+}

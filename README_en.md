@@ -1,4 +1,4 @@
-<h2 align="center">hualai: A Project-Aware Prompt Enhancer Skill for Claude Code</h2>
+<h2 align="center">hualai: A Project-Aware Prompt Enhancer Plugin for Claude Code</h2>
 
 <p align="center">
   <b>English</b> | <a href="./README.md">中文</a>
@@ -11,7 +11,7 @@
   <a href="https://github.com/jiangwanyutao/hualai/stargazers"><img src="https://img.shields.io/github/stars/jiangwanyutao/hualai?style=flat" alt="Stars"></a>
 </p>
 
-hualai is a **Claude Code Skill**: jot down a rough draft, and it first **explores your current project read-only** (tech stack, relevant files, global style overrides, shared usages), then rewrites the draft into a **clear, specific, actionable** prompt. It only outputs the rewritten prompt — it never executes the task or edits files. You review it and send it yourself.
+hualai is a **Claude Code plugin**: jot down a rough draft, and it first **explores your current project read-only** (tech stack, relevant files, global style overrides, shared usages), then rewrites the draft into a **clear, specific, actionable** prompt. It only outputs the rewritten prompt — it never executes the task or edits files. You review it and send it yourself.
 
 The name comes from the Chinese「话来」(*huà lái*, "here come the words") — one sentence in, a solid prompt out.
 
@@ -25,9 +25,11 @@ The name comes from the Chinese「话来」(*huà lái*, "here come the words") 
 - ✂️ **Multi-goal splitting** — A draft mixing several goals is split into numbered sub-tasks, each with its own completion check, done and verified one at a time
 - 🎨 **Two styles** — Concise mode (~800 chars) for daily use; creative mode fully develops requirements, boundaries, and acceptance criteria
 - 🌐 **Keeps your language** — Chinese in, Chinese out; code, paths, and error messages are preserved verbatim
+- 🤖 **Auto-enhance (optional)** — After you send `hualai on`, every message is rewritten by hualai before it runs, no command needed; off by default
 
 ### News
 
+* **[2026.09]** 🔥 Now a Claude Code plugin, with an auto-enhance switch (`hualai on` / `hualai off`, off by default)
 * **[2026.09]** 🔥 Clear drafts now skip project exploration — about 3× faster for pure rewrites
 * **[2026.09]** 🎉 Added term-definition and multi-goal splitting rules
 * **[2026.09]** 🎉 First release: project exploration + codegraph index + three scan modes
@@ -39,6 +41,7 @@ The name comes from the Chinese「话来」(*huà lái*, "here come the words") 
 - [Quick Start](#-quick-start)
   - [Installation](#installation)
   - [Usage](#usage)
+  - [Auto-enhance](#auto-enhance)
 - [Options](#%EF%B8%8F-options)
 - [How It Works](#-how-it-works)
 - [Benchmarks](#-benchmarks)
@@ -59,13 +62,16 @@ The name comes from the Chinese「话来」(*huà lái*, "here come the words") 
 Install hualai by following https://raw.githubusercontent.com/jiangwanyutao/hualai/main/AGENTS.md
 ```
 
-**Manual install:**
+**Manual install (Claude Code plugin):**
 
 ```bash
-git clone https://github.com/jiangwanyutao/hualai ~/.claude/skills/hualai
+claude plugin marketplace add jiangwanyutao/hualai
+claude plugin install hualai@hualai
 ```
 
-> **Requirements:** [Claude Code](https://docs.claude.com/en/docs/claude-code). Restart Claude Code after installing, then type `/hualai`. Optionally install codegraph and index your project to enable index acceleration (if it is missing, hualai adds an install tip at the end of its output):
+> Upgrading from the old install (`git clone` into `~/.claude/skills/hualai`): delete that directory first, or the two copies clash on the same name.
+>
+> **Requirements:** [Claude Code](https://docs.claude.com/en/docs/claude-code) + Node.js (for the auto-enhance hook). Restart Claude Code after installing, then type `/hualai:hualai`. Optionally install codegraph and index your project to enable index acceleration (if it is missing, hualai adds an install tip at the end of its output):
 >
 > ```bash
 > npm i -g @colbymchenry/codegraph   # 1. install the CLI
@@ -76,10 +82,10 @@ git clone https://github.com/jiangwanyutao/hualai ~/.claude/skills/hualai
 ### Usage
 
 ```text
-/hualai the login button on the login page looks too faint, fix it
-/hualai --creative build a pomodoro timer web page
-/hualai --grep improve timeout handling in the model inference API
-/hualai --no-scan write my weekly report
+/hualai:hualai the login button on the login page looks too faint, fix it
+/hualai:hualai --creative build a pomodoro timer web page
+/hualai:hualai --grep improve timeout handling in the model inference API
+/hualai:hualai --no-scan write my weekly report
 ```
 
 #### 🗣️ Example Output
@@ -98,6 +104,21 @@ Project context:
 Requirements:
 1. Confirm why it looks faint before changing anything...
 ```
+
+
+### Auto-enhance
+
+Off by default. Send these in Claude Code as plain messages (no slash):
+
+```text
+hualai on    # on: every message is first rewritten by hualai; the result is shown to you, injected into the session, then carried out
+hualai off   # off
+```
+
+- The switch applies to all sessions; its state is the file `~/.claude/hualai-auto-on` (present = on). These two messages are intercepted and never reach the model.
+- Not rewritten: replies of 6 characters or fewer ("ok", "go on"), `/` commands, and 「照上面的提示词执行」.
+- The rewrite runs in a separate `claude -p` child process, adding 30–50s and one extra call per message; on failure the original message runs and you are told why.
+- If the enhanced prompt conflicts with your own words, your words win.
 
 ---
 
@@ -159,7 +180,7 @@ Environment: a mid-to-large Vue 3 + Spring Boot project (~9,800 files), Claude C
 |---|---|
 | Only checked component styles, missed a global `!important` override | After finding the target, Grep its class / identifier project-wide |
 | Claimed "file X doesn't use this class" without checking | Negative claims must come from a real Grep result, otherwise marked *unconfirmed* |
-| "Use codegraph if indexed" was skipped by the model | Made it a hard step: the first tool call must be `codegraph_status` |
+| "Use codegraph if indexed" was skipped by the model | Made it a hard step: the first codegraph call must be `codegraph_status` |
 
 </details>
 
@@ -183,6 +204,7 @@ Environment: a mid-to-large Vue 3 + Spring Boot project (~9,800 files), Claude C
 - Exploration takes 30–50 seconds; use `--no-scan` if you only want wording polished.
 - For CSS class names and style overrides, codegraph is not faster than Grep; it shines on backend call-chain queries.
 - No need to copy the result: just reply "run the prompt above". Copy it only if you want to edit it first.
+- Auto-enhance works only in Claude Code (it relies on the UserPromptSubmit hook); other coding tools are not supported.
 - Read-only is enforced by the prompt: `allowed-tools` only pre-approves tools and does not block others, so take care in permission-bypass modes.
 
 ---

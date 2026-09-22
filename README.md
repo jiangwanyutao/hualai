@@ -1,4 +1,4 @@
-<h2 align="center">hualai（话来）：会看项目的 Claude Code 提示词增强 Skill</h2>
+<h2 align="center">hualai（话来）：会看项目的 Claude Code 提示词增强插件</h2>
 
 <p align="center">
   <a href="./README_en.md">English</a> | <b>中文</b>
@@ -11,7 +11,7 @@
   <a href="https://github.com/jiangwanyutao/hualai/stargazers"><img src="https://img.shields.io/github/stars/jiangwanyutao/hualai?style=flat" alt="Stars"></a>
 </p>
 
-hualai 是一个 **Claude Code Skill**：你随手写一句草稿，它先**只读探查当前项目**（技术栈、相关文件、全局样式覆盖、共用引用），再把草稿改写成**清晰、具体、可执行**的提示词。它只输出改写结果，不执行任务、不改文件，确认无误后再由你发送。
+hualai 是一个 **Claude Code 插件**：你随手写一句草稿，它先**只读探查当前项目**（技术栈、相关文件、全局样式覆盖、共用引用），再把草稿改写成**清晰、具体、可执行**的提示词。它只输出改写结果，不执行任务、不改文件，确认无误后再由你发送。
 
 名字取自「话来」——就像「牛来」一样，一句话招来一个好提示词。
 
@@ -25,9 +25,11 @@ hualai 是一个 **Claude Code Skill**：你随手写一句草稿，它先**只�
 - ✂️ **多目标拆分** — 一句话混了几个目标时，拆成带各自完成标准的编号子任务，逐个完成验证
 - 🎨 **两种风格** — 简洁模式（约 800 字）适合日常；创意模式充分展开需求、边界与验收标准
 - 🌐 **保持原语言** — 中文草稿输出中文，代码、路径、报错原文逐字保留
+- 🤖 **自动增强（可选）** — 发 `hualai on` 后，每条消息先经 hualai 改写再执行，不用再手敲命令；默认关闭
 
 ### 最新动态
 
+* **[2026.09]** 🔥 改为 Claude Code 插件，新增自动增强开关（`hualai on` / `hualai off`，默认关）
 * **[2026.09]** 🔥 清楚的草稿自动跳过项目探查，纯改写场景提速约 3 倍
 * **[2026.09]** 🎉 新增术语定义补全与多目标拆分规则
 * **[2026.09]** 🎉 首次发布：项目探查 + codegraph 索引 + 三种扫描方式
@@ -39,6 +41,7 @@ hualai 是一个 **Claude Code Skill**：你随手写一句草稿，它先**只�
 - [快速开始](#-快速开始)
   - [安装](#安装)
   - [使用](#使用)
+  - [自动增强](#自动增强)
 - [参数说明](#%EF%B8%8F-参数说明)
 - [工作原理](#-工作原理)
 - [实测数据](#-实测数据)
@@ -59,13 +62,16 @@ hualai 是一个 **Claude Code Skill**：你随手写一句草稿，它先**只�
 安装 hualai，按 https://raw.githubusercontent.com/jiangwanyutao/hualai/main/AGENTS.md 操作
 ```
 
-**手动装：**
+**手动装（Claude Code 插件）：**
 
 ```bash
-git clone https://github.com/jiangwanyutao/hualai ~/.claude/skills/hualai
+claude plugin marketplace add jiangwanyutao/hualai
+claude plugin install hualai@hualai
 ```
 
-> **环境要求：** [Claude Code](https://docs.claude.com/en/docs/claude-code)。安装后重启 Claude Code，输入 `/hualai` 即可看到。可选安装 codegraph 并在项目中建立索引以启用索引加速（没装时 hualai 会在结果末尾提示安装方法）：
+> 从旧版（`git clone` 到 `~/.claude/skills/hualai`）升级：先删掉那个目录再按上面装，否则两份同名会冲突。
+>
+> **环境要求：** [Claude Code](https://docs.claude.com/en/docs/claude-code) + Node.js（自动增强的 hook 用）。安装后重启 Claude Code，输入 `/hualai:hualai` 即可看到。可选安装 codegraph 并在项目中建立索引以启用索引加速（没装时 hualai 会在结果末尾提示安装方法）：
 >
 > ```bash
 > npm i -g @colbymchenry/codegraph   # 1. 装 CLI
@@ -76,10 +82,10 @@ git clone https://github.com/jiangwanyutao/hualai ~/.claude/skills/hualai
 ### 使用
 
 ```text
-/hualai 改下登录页的登录按钮，颜色太淡了
-/hualai --creative 做一个番茄钟网页
-/hualai --grep 优化下模型推理接口的超时处理
-/hualai --no-scan 帮我写个周报
+/hualai:hualai 改下登录页的登录按钮，颜色太淡了
+/hualai:hualai --creative 做一个番茄钟网页
+/hualai:hualai --grep 优化下模型推理接口的超时处理
+/hualai:hualai --no-scan 帮我写个周报
 ```
 
 #### 🗣️ 输出示例
@@ -98,6 +104,20 @@ git clone https://github.com/jiangwanyutao/hualai ~/.claude/skills/hualai
 要求：
 1. 先确认"淡"的原因再改……
 ```
+
+### 自动增强
+
+默认关闭。在 Claude Code 里直接发（不带斜杠）：
+
+```text
+hualai on    # 开启：之后每条消息先经 hualai 改写，改写结果显示给你并注入当前会话，再按它执行
+hualai off   # 关闭
+```
+
+- 开关对所有会话生效，状态存在 `~/.claude/hualai-auto-on`（文件在 = 开）。这两句本身会被拦下，不会发给模型。
+- 不改写：6 个字以内的短回复（「好」「继续」）、`/` 开头的命令、「照上面的提示词执行」。
+- 改写由一个独立的 `claude -p` 子进程完成，每条消息多等 30–50 秒、多一次调用费用；失败时按原话执行并提示原因。
+- 增强后的提示词与你的原话冲突时，以原话为准。
 
 ---
 
@@ -159,7 +179,7 @@ git clone https://github.com/jiangwanyutao/hualai ~/.claude/skills/hualai
 |---|---|
 | 只看组件内样式，漏掉全局 `!important` 覆盖 | 找到目标后必须全项目 Grep 其类名 / 标识符 |
 | 未经查证就断言「某文件没用到这个类」 | 否定结论必须来自真实 Grep 结果，否则写「未确认」 |
-| 「有索引就用 codegraph」被模型跳过 | 改为硬性步骤：第一个工具必须是 `codegraph_status` |
+| 「有索引就用 codegraph」被模型跳过 | 改为硬性步骤：第一个 codegraph 调用必须是 `codegraph_status` |
 
 </details>
 
@@ -183,6 +203,7 @@ git clone https://github.com/jiangwanyutao/hualai ~/.claude/skills/hualai
 - 探查需要 30–50 秒；只想润色文字请用 `--no-scan`。
 - 对 CSS 类名、样式覆盖这类需求，codegraph 并不比 Grep 快，其优势在后端调用链查询。
 - 改写结果不用手动复制：直接回复「照上面的提示词执行」即可。想先改几句再发，仍需复制。
+- 自动增强只支持 Claude Code（依赖其 UserPromptSubmit hook），其他编程工具未适配。
 - 「只读」靠提示词约束：`allowed-tools` 只是免确认放行，并不禁用其他工具，在跳过权限确认的模式下尤其要留意。
 
 ---
