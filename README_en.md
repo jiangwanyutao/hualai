@@ -29,6 +29,7 @@ The name comes from the Chinese「话来」(*huà lái*, "here come the words") 
 
 ### News
 
+* **[2026.09]** 💰 Lower usage: manual calls keep the session model and reuse what this session already found; auto-enhance runs on Sonnet and sees the recent conversation
 * **[2026.09]** 🔥 Now a Claude Code plugin, with an auto-enhance switch (`hualai on` / `hualai off`, off by default)
 * **[2026.09]** 🔥 Clear drafts now skip project exploration — about 3× faster for pure rewrites
 * **[2026.09]** 🎉 Added term-definition and multi-goal splitting rules
@@ -117,7 +118,9 @@ hualai off   # off
 
 - The switch applies to all sessions; its state is the file `~/.claude/hualai-auto-on` (present = on). These two messages are intercepted and never reach the model.
 - Not rewritten: replies of 6 characters or fewer ("ok", "go on"), `/` commands, and 「照上面的提示词执行」.
-- The rewrite runs in a separate `claude -p` child process, adding 30–50s and one extra call per message; on failure the original message runs and you are told why.
+- The rewrite runs in a separate `claude -p` child process (Sonnet), adding 30–60s and one extra call per message; on failure the original message runs and you are told why.
+- The child gets the last ~6,000 characters of the current conversation (text only, no tool calls), so references like "this" or "try again" resolve correctly.
+- In a long session, manual `/hualai:hualai` is cheaper: it runs inside the current session and reuses its context.
 - If the enhanced prompt conflicts with your own words, your words win.
 
 ---
@@ -151,7 +154,7 @@ draft ─→ parse flags ─→ is it clear?
                   rewrite: project context + term definitions + sub-tasks + completion checks
 ```
 
-- Exploration uses read-only tools only (Read / Glob / Grep / codegraph) and finishes within ~10 calls.
+- Exploration uses read-only tools only (Read / Glob / Grep / codegraph) and finishes within ~6 calls; files this session already looked at are reused, not re-explored.
 - Keeps the draft's intent and task stage: it won't turn "implement" into "plan only", or "analyze first" into "just change it".
 
 ---
