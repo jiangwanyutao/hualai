@@ -81,8 +81,9 @@ function rewrite(prompt, cwd, transcriptPath) {
 }
 
 function spawnClaude(prompt, cwd, extraArgs) {
-  // fresh session with no history to reuse: a cheaper model and only the tools the skill uses
-  const r = spawnSync('claude', ['-p', '--model', 'sonnet', '--tools', 'Read,Glob,Grep,ToolSearch,Skill', ...extraArgs], {
+  // fresh session with no history to reuse: a cheaper model and only the tools the skill uses;
+  // not saved to disk, so each rewrite does not leave a stray session in the history
+  const r = spawnSync('claude', ['-p', '--no-session-persistence', '--model', 'sonnet', '--tools', 'Read,Glob,Grep,ToolSearch,Skill', ...extraArgs], {
     input: `/hualai:hualai ${prompt}`,
     cwd: cwd || process.cwd(),
     env: { ...process.env, [CHILD_ENV]: '1' },

@@ -1,6 +1,6 @@
 {
   "name": "hualai",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "会看项目的提示词增强：先只读探查项目，再把草稿改写成清晰可执行的提示词；写完功能后生成前后端验证提示词（/hualai:ceshi）；可选自动增强每条消息",
   "author": { "name": "jiangwanyutao" },
   "repository": "https://github.com/jiangwanyutao/hualai",
