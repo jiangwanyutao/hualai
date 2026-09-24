@@ -41,6 +41,7 @@ hualai 是一个 **Claude Code 插件**：你随手写一句草稿，它先**只
 
 - [快速开始](#-快速开始)
   - [安装](#安装)
+  - [升级](#升级)
   - [使用](#使用)
   - [自动增强](#自动增强)
 - [参数说明](#%EF%B8%8F-参数说明)
@@ -79,6 +80,17 @@ claude plugin install hualai@hualai
 > codegraph install --target claude --location global --yes   # 2. 接入 Claude Code，之后重启
 > codegraph init --index             # 3. 在项目根目录建索引
 > ```
+
+### 升级
+
+```bash
+claude plugin marketplace update hualai
+claude plugin update hualai@hualai
+```
+
+然后重启 Claude Code，或在 Claude Code 里输入 `/reload-plugins`。也可以在 Claude Code 里用 `/plugin` 界面操作：在 Marketplaces 里更新 `hualai`，再到 Installed 里把插件更新到最新版。
+
+`claude plugin list` 里 hualai 的 `Version` 与仓库 [`plugin.json`](.claude-plugin/plugin.json) 一致，就是最新版。
 
 ### 使用
 

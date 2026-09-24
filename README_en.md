@@ -41,6 +41,7 @@ The name comes from the Chinese「话来」(*huà lái*, "here come the words") 
 
 - [Quick Start](#-quick-start)
   - [Installation](#installation)
+  - [Upgrade](#upgrade)
   - [Usage](#usage)
   - [Auto-enhance](#auto-enhance)
 - [Options](#%EF%B8%8F-options)
@@ -79,6 +80,17 @@ claude plugin install hualai@hualai
 > codegraph install --target claude --location global --yes   # 2. wire it into Claude Code, then restart
 > codegraph init --index             # 3. build the index in your project root
 > ```
+
+### Upgrade
+
+```bash
+claude plugin marketplace update hualai
+claude plugin update hualai@hualai
+```
+
+Then restart Claude Code, or run `/reload-plugins` inside it. You can also use the `/plugin` screen in Claude Code: update the `hualai` marketplace under Marketplaces, then update the plugin under Installed.
+
+If the hualai `Version` in `claude plugin list` matches the repo's [`plugin.json`](.claude-plugin/plugin.json), you are on the latest version.
 
 ### Usage
 
