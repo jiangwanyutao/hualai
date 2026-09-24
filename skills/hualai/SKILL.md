@@ -2,6 +2,7 @@
 name: hualai
 description: 先只读探查当前项目（技术栈、相关文件，优先用 codegraph 索引），再把草稿改写成更清晰、更具体、可执行的提示词（模板移植自 zcode-plus）。用法：/hualai:hualai [--creative] [--grep|--no-scan] 草稿
 disable-model-invocation: true
+model: inherit
 argument-hint: "[--creative] [--grep|--no-scan] <草稿>"
 allowed-tools: Read, Glob, Grep, ToolSearch, mcp__codegraph__codegraph_status, mcp__codegraph__codegraph_context, mcp__codegraph__codegraph_search, mcp__codegraph__codegraph_node, mcp__codegraph__codegraph_explore, mcp__codegraph__codegraph_callers, mcp__codegraph__codegraph_files
 ---
@@ -12,7 +13,7 @@ FLAGS: strip any leading flags from the draft (any order) before using it.
 - `--creative` → CREATIVE mode; otherwise CONCISE mode.
 - If both `--grep` and `--no-scan` are given, `--grep` wins.
 - Scan method (default `auto`):
-  - `auto`: first judge the draft WITHOUT calling any tool. Treat it as CLEAR and skip STEP 1 (same as `--no-scan`) when either (a) it does not depend on this codebase at all (e.g. 写周报, a general question, a brand-new standalone project), or (b) it already names the exact files / symbols / paths to change AND the expected result. Otherwise — vague references like 登录页, 那个接口, 某个按钮, or module names that need lookup — scan: your FIRST codegraph call MUST be `codegraph_status` (if it is deferred, load it via ToolSearch first — that ToolSearch call is allowed before it; pass projectPath if the target project is not the current directory). If it returns index stats, use CODEGRAPH scan; if the tool is unavailable or errors / reports no index, use GREP scan and remember which case it was for the INSTALL TIP.
+  - `auto`: first judge the draft WITHOUT calling any tool. Treat it as CLEAR and skip STEP 1 (same as `--no-scan`) when (a) it does not depend on this codebase at all (e.g. 写周报, a general question, a brand-new standalone project), (b) it already names the exact files / symbols / paths to change AND the expected result, or (c) this conversation's earlier tool results already show the files / symbols the draft refers to — then reuse those findings; if only part is known, scan ONLY for the missing part (no `codegraph_status` / `codegraph_context` restart). Otherwise — vague references like 登录页, 那个接口, 某个按钮, or module names that need lookup — scan: your FIRST codegraph call MUST be `codegraph_status` (if it is deferred, load it via ToolSearch first — that ToolSearch call is allowed before it; pass projectPath if the target project is not the current directory). If it returns index stats, use CODEGRAPH scan; if the tool is unavailable or errors / reports no index, use GREP scan and remember which case it was for the INSTALL TIP.
   - `--grep`: force GREP scan (never skipped, even for a clear draft).
   - `--no-scan`: skip STEP 1 entirely; rewrite from the draft and this conversation only, without a 项目上下文 part.
 
@@ -21,16 +22,16 @@ STEP 1 — PROJECT DISCOVERY (read-only, quick, before rewriting):
 - CODEGRAPH scan: the call right after `codegraph_status` MUST be `codegraph_context` with the draft's task (pass projectPath if the project is not the current directory). Then use codegraph_node/explore/callers only if needed, and confirm key lines with Read.
 - GREP scan: extract keywords from the draft (e.g. 登录页 → login, 按钮 → button, plus Chinese UI text) and Grep/Glob for the matching pages, components, APIs, or tables. Open only the few most likely files to confirm.
 - Either scan: once the target is found, Grep its class name / function / identifier project-wide to catch global overrides (e.g. theme stylesheets, `!important`) and other usages.
-- Budget: about 10 tool calls. Stop once the target is located or clearly not found.
+- Budget: about 6 tool calls. Stop once the target is located or clearly not found.
 - Use ONLY the tools listed in allowed-tools. Never edit files or run commands.
 
 STEP 2 — REWRITE using the findings:
 - Add a short project-context part: the confirmed stack and the concrete file paths (with line numbers when useful) the downstream assistant should start from. Title it 项目上下文 for Chinese drafts and Project context for English drafts; this title is allowed and is not a forbidden label.
 - Undefined terms: the downstream assistant does not know team jargon, internal module/system names, abbreviations, or newly coined concepts in the draft. For each, add a one-line definition backed by what discovery found (e.g. "XX 模块 = path, 负责 …"); if discovery found nothing (or `--no-scan`), keep the term and mark it 需确认含义 instead of guessing.
 - Multiple goals: if the draft mixes several independent goals, keep every one of them but split them into numbered sub-tasks, each with its own completion check, and ask the downstream assistant to finish and verify them one at a time.
-- Only cite paths/symbols you actually saw. Every claim about usage — especially negative ones like "X does not use Y" or "not affected" — must come from an actual Grep result; if not grepped, write 未确认 instead. If several candidates match, list them and ask the downstream assistant to confirm which one. If nothing matched, keep the draft's reference as-is and turn it into a locate-first step.
+- Only cite paths/symbols you actually saw — in this turn's tool results or in earlier tool results of this conversation. Never cite a path that only appeared in the user's or assistant's prose without a tool result behind it. Every claim about usage — especially negative ones like "X does not use Y" or "not affected" — must come from an actual Grep result; if not grepped, write 未确认 instead. If several candidates match, list them and ask the downstream assistant to confirm which one. If nothing matched, keep the draft's reference as-is and turn it into a locate-first step.
 
-INSTALL TIP (only in `auto` mode when STEP 1 fell back to GREP scan; never with `--grep`, `--no-scan`, or a CLEAR draft): after the enhanced prompt, add a line `---` and then ONE tip line in the draft's language, clearly marked as a note for the user and not part of the prompt:
+INSTALL TIP (only in `auto` mode when STEP 1 fell back to GREP scan; never with `--grep`, `--no-scan`, or a CLEAR draft; in every other case output no `---` and no note of any kind): after the enhanced prompt, add a line `---` and then ONE tip line in the draft's language, clearly marked as a note for the user and not part of the prompt:
 - codegraph tool unavailable → `（给你的提示，不属于提示词）未检测到 codegraph，本次用 Grep 探查。装上可加速：让 Claude「按 https://raw.githubusercontent.com/jiangwanyutao/hualai/main/AGENTS.md 安装 codegraph」即可。`
 - codegraph available but the project has no index → `（给你的提示，不属于提示词）当前项目没有 codegraph 索引，本次用 Grep 探查。在项目根目录运行 codegraph init --index 可加速。`
 For English drafts, translate the tip and start it with `(Note for you, not part of the prompt)`.

@@ -42,7 +42,8 @@ function inject(enhanced) {
 }
 
 function rewrite(prompt, cwd) {
-  const r = spawnSync('claude', ['-p'], {
+  // fresh session with no history to reuse: a cheaper model and only the tools the skill uses
+  const r = spawnSync('claude', ['-p', '--model', 'sonnet', '--tools', 'Read,Glob,Grep,ToolSearch,Skill'], {
     input: `/hualai:hualai ${prompt}`,
     cwd: cwd || process.cwd(),
     env: { ...process.env, [CHILD_ENV]: '1' },
