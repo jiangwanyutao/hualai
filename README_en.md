@@ -25,10 +25,12 @@ The name comes from the Chinese「话来」(*huà lái*, "here come the words") 
 - ✂️ **Multi-goal splitting** — A draft mixing several goals is split into numbered sub-tasks, each with its own completion check, done and verified one at a time
 - 🎨 **Two styles** — Concise mode (~800 chars) for daily use; creative mode fully develops requirements, boundaries, and acceptance criteria
 - 🌐 **Keeps your language** — Chinese in, Chinese out; code, paths, and error messages are preserved verbatim
+- 🧪 **Verify after coding** — `/hualai:ceshi` turns the latest change into a backend + frontend verification prompt: real interface calls, real browser steps with screenshots
 - 🤖 **Auto-enhance (optional)** — After you send `hualai on`, every message is rewritten by hualai before it runs, no command needed; off by default
 
 ### News
 
+* **[2026.09]** 🧪 New `/hualai:ceshi`: after coding, generates a backend + frontend verification prompt for the latest change
 * **[2026.09]** 💰 Lower usage: manual calls keep the session model and reuse what this session already found; auto-enhance runs on Sonnet and sees the recent conversation
 * **[2026.09]** 🔥 Now a Claude Code plugin, with an auto-enhance switch (`hualai on` / `hualai off`, off by default)
 * **[2026.09]** 🔥 Clear drafts now skip project exploration — about 3× faster for pure rewrites
@@ -44,6 +46,7 @@ The name comes from the Chinese「话来」(*huà lái*, "here come the words") 
   - [Upgrade](#upgrade)
   - [Usage](#usage)
   - [Auto-enhance](#auto-enhance)
+  - [Verify after coding](#verify-after-coding-hualaiceshi)
 - [Options](#%EF%B8%8F-options)
 - [How It Works](#-how-it-works)
 - [Benchmarks](#-benchmarks)
@@ -134,6 +137,25 @@ hualai off   # off
 - The child gets the last ~6,000 characters of the current conversation (text only, no tool calls), so references like "this" or "try again" resolve correctly.
 - In a long session, manual `/hualai:hualai` is cheaper: it runs inside the current session and reuses its context.
 - If the enhanced prompt conflicts with your own words, your words win.
+
+### Verify after coding (/hualai:ceshi)
+
+Run it after finishing a feature. hualai reads the change (read-only), finds the interfaces and pages it touches, and outputs a verification prompt that makes Claude test the backend and frontend for real:
+
+```text
+/hualai:ceshi                       # uncommitted changes; the last commit if the tree is clean
+/hualai:ceshi HEAD~3                # the last 3 commits
+/hualai:ceshi a1b2c3 frontend only  # a specific commit, plus an optional note
+```
+
+The generated prompt contains:
+
+- **Interfaces**: method, path, and code location for each, with one normal input and at least one abnormal input; each must be called for real, with the status code and response body pasted
+- **Pages**: route and code location for each, the user steps that exercise the change plus one edge case; each must be walked in a real browser with screenshots, console errors, and request results checked
+- **How to run**: the project's actual start and test commands
+- **Result table**: pass / fail / not tested with evidence for each item; a skipped check is not a pass, and failures are reported before anything is changed
+
+`/hualai:ceshi` itself is read-only and only writes the prompt; it never calls an interface or opens a browser. If only docs changed, it tells you there is nothing to verify at runtime.
 
 ---
 
