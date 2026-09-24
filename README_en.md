@@ -25,7 +25,7 @@ The name comes from the Chinese「话来」(*huà lái*, "here come the words") 
 - ✂️ **Multi-goal splitting** — A draft mixing several goals is split into numbered sub-tasks, each with its own completion check, done and verified one at a time
 - 🎨 **Two styles** — Concise mode (~800 chars) for daily use; creative mode fully develops requirements, boundaries, and acceptance criteria
 - 🌐 **Keeps your language** — Chinese in, Chinese out; code, paths, and error messages are preserved verbatim
-- 🧪 **Verify after coding** — `/hualai:ceshi` turns the latest change into a backend + frontend verification prompt: real interface calls, real browser steps with screenshots
+- 🧪 **Verify after coding** — `/hualai:ceshi` turns the latest change, a feature description, or a progress doc into a backend + frontend verification prompt: real interface calls, real browser steps with screenshots
 - 🤖 **Auto-enhance (optional)** — After you send `hualai on`, every message is rewritten by hualai before it runs, no command needed; off by default
 
 ### News
@@ -140,12 +140,14 @@ hualai off   # off
 
 ### Verify after coding (/hualai:ceshi)
 
-Run it after finishing a feature. hualai reads the change (read-only), finds the interfaces and pages it touches, and outputs a verification prompt that makes Claude test the backend and frontend for real:
+Run it after finishing a feature, with what to test on the same line: the latest change, a commit range, a feature description, or a progress document. hualai finds the interfaces and pages involved (read-only) and outputs a verification prompt that makes Claude test the backend and frontend for real:
 
 ```text
 /hualai:ceshi                       # uncommitted changes; the last commit if the tree is clean
 /hualai:ceshi HEAD~3                # the last 3 commits
 /hualai:ceshi a1b2c3 frontend only  # a specific commit, plus an optional note
+/hualai:ceshi job list status filter  # a feature description: skips git and finds the feature in the code
+/hualai:ceshi docs/progress.md      # a progress doc: only items marked done ([x] / ✅ / Done), one block each, up to 5
 ```
 
 The generated prompt contains:
