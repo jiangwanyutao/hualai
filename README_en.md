@@ -26,10 +26,12 @@ The name comes from the Chinese「话来」(*huà lái*, "here come the words") 
 - 🎨 **Two styles** — Concise mode (~800 chars) for daily use; creative mode fully develops requirements, boundaries, and acceptance criteria
 - 🌐 **Keeps your language** — Chinese in, Chinese out; code, paths, and error messages are preserved verbatim
 - 🧪 **Verify after coding** — `/hualai:ceshi` turns the latest change, a feature description, or a progress doc into a backend + frontend verification prompt: real interface calls, real browser steps with screenshots
+- 🗂️ **Requirements to prototype** — `/hualai:page-prd` turns business requirements into one HTML file: a clickable admin page on the left (HeroUI styles) and an editable requirement spec on the right, plus a one-click implementation prompt for Claude Code / Codex
 - 🤖 **Auto-enhance (optional)** — After you send `hualai on`, every message is rewritten by hualai before it runs, no command needed; off by default
 
 ### News
 
+* **[2026.10]** 🗂️ New `/hualai:page-prd`: turns business requirements into a single-file HTML prototype with the page on the left and the requirement spec on the right (0.4.0)
 * **[2026.09]** 🐛 The auto-enhance child no longer saves its session, so your session history no longer gets an extra `hualai:hualai` fragment per message (0.3.1)
 * **[2026.09]** 🧪 New `/hualai:ceshi`: after coding, generates a backend + frontend verification prompt for the latest change
 * **[2026.09]** 💰 Lower usage: manual calls keep the session model and reuse what this session already found; auto-enhance runs on Sonnet and sees the recent conversation
@@ -48,6 +50,7 @@ The name comes from the Chinese「话来」(*huà lái*, "here come the words") 
   - [Usage](#usage)
   - [Auto-enhance](#auto-enhance)
   - [Verify after coding](#verify-after-coding-hualaiceshi)
+  - [Requirement prototypes](#requirement-prototypes-hualaipage-prd)
 - [Options](#%EF%B8%8F-options)
 - [How It Works](#-how-it-works)
 - [Benchmarks](#-benchmarks)
@@ -159,6 +162,27 @@ The generated prompt contains:
 - **Result table**: pass / fail / not tested with evidence for each item; a skipped check is not a pass, and failures are reported before anything is changed
 
 `/hualai:ceshi` itself is read-only and only writes the prompt; it never calls an interface or opens a browser. If only docs changed, it tells you there is nothing to verify at runtime.
+
+### Requirement prototypes (/hualai:page-prd)
+
+Turns business requirements into one HTML file you can open by double-clicking: a clickable admin-page prototype on the left, and that menu's requirement spec on the right (overview, permission table, and for each feature its interaction, field table, and business rules), editable in the browser. All menus of one system live in the same file, and later requirements are added to it by default.
+
+```text
+/hualai:page-prd Build a customer-management prototype for the CRM: list, create, edit, detail
+/hualai:page-prd Add an order-management menu to the prototype
+/hualai:page-prd prototypes/crm/CRM-原型-20261022-153000.html   # merge the spec you edited and exported in the browser back into the prototype
+/hualai:page-prd Fill in the sales manager role in the customer list permission table
+/hualai:page-prd Export the prototype's requirement spec as Markdown
+```
+
+- Prototypes go to `prototypes/<system>/index.html` under the current directory; if that folder does not exist, it asks where to put them first
+- Only features named in the requirements are drawn; anything the requirements leave out (permissions, data scope, status flow) stays blank in the spec for you to fill
+- Pages use the official HeroUI styles and lucide icons; HeroUI, Tailwind, and Vue load from a CDN (icons work offline)
+- After editing the spec in the browser, click "导出 HTML" and hand the exported file to `/hualai:page-prd` to merge it back
+- The "导出给 AI" button on the prototype's toolbar writes an implementation prompt: only what the spec says, blanks marked as needing confirmation; copy it or download the `.md` for Claude Code / Codex
+- Merging, editing the spec, and Markdown export run the skill's bundled Node scripts, so Node.js is required
+
+You can also skip the command and just say "draw a prototype for XX" or "merge my edited spec back"; Claude picks the skill up automatically.
 
 ---
 

@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<!-- ★★  page-prd 单菜单骨架模板  ★★
+      用法：复制本文件 → 替换下面所有 ★替换点 → 得到目标系统的第一版原型。
+      加第二个菜单时，见 references/add-menu-checklist.md —— 必须改在同一个文件里，不要新建文件。
+      样式：HeroUI 官方编译样式（组件类名 + 主题变量），Tailwind v4 浏览器版只负责布局；图标用 lucide 内联 SVG（ICONS + <lc-icon>）。
+-->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>★替换点1：系统英文名 原型</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@heroui/styles@3.2.6/dist/heroui.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.1.13"></script>
+<script src="https://unpkg.com/vue@3.5.13/dist/vue.global.prod.js"></script>
+<style type="text/tailwindcss">
+  /* 把 HeroUI 的主题变量接到 Tailwind 工具类上：bg-surface、text-muted、shadow-surface 等 */
+  @theme inline {
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --color-surface: var(--surface);
+    --color-surface-secondary: var(--surface-secondary);
+    --color-muted: var(--muted);
+    --color-border: var(--border);
+    --color-separator: var(--separator);
+    --color-default: var(--default);
+    --color-accent: var(--accent);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-danger: var(--danger);
+    --color-warning: var(--warning);
+    --color-success: var(--success);
+    --shadow-surface: var(--surface-shadow);
+    --shadow-overlay: var(--overlay-shadow);
+  }
+</style>
+<style>
+  /* HeroUI 的弹窗、抽屉高度依赖这个变量，React 运行时才会写，这里自己给 */
+  :root{--visual-viewport-height:100dvh}
+  [v-cloak]{display:none}
+  body{background:var(--background);color:var(--foreground);font-size:var(--text-sm)}
+  /* lucide 图标默认尺寸；:where 不加优先级，size-* 类可以覆盖 */
+  :where(svg.lucide){width:1rem;height:1rem;flex-shrink:0}
+  .menu-pane.hidden{display:none}
+  .flash{animation:fl 1.6s ease;border-radius:var(--radius)}
+  @keyframes fl{0%,100%{outline:2px solid transparent}25%,70%{outline:2px solid var(--warning)}}
+  .flashbg{animation:flb 1.6s ease}
+  @keyframes flb{0%,100%{background:transparent}25%,70%{background:color-mix(in oklab,var(--warning) 22%,transparent)}}
+  /* 编号气泡（不叫 badge：HeroUI 有同名组件类） */
+  .num-badge{position:absolute;top:-8px;right:-8px;min-width:18px;height:18px;padding:0 5px;border-radius:9999px;background:var(--accent);color:var(--accent-foreground);font-size:var(--text-xs);font-weight:600;line-height:18px;text-align:center;cursor:pointer;box-shadow:var(--surface-shadow);z-index:10}
+  .num-badge-in{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border-radius:9999px;background:var(--accent);color:var(--accent-foreground);font-size:var(--text-xs);font-weight:600;cursor:pointer}
+  /* 右侧需求说明：编辑模式 */
+  .only-edit{display:none !important}
+  .editing .only-edit{display:inline-flex !important}
+  .editing [data-edit]{background:color-mix(in oklab,var(--warning) 12%,transparent);outline:1px dashed var(--warning);outline-offset:2px;border-radius:var(--radius-xs)}
+  [data-edit]:focus{outline:2px solid var(--accent);background:var(--surface)}
+  /* 右侧需求说明：功能点卡片、子项、说明表格 */
+  .fn{background:var(--surface);border-radius:var(--radius-2xl);box-shadow:var(--surface-shadow);padding:12px 14px;margin-bottom:10px;cursor:pointer;transition:box-shadow .15s}
+  .fn:hover{box-shadow:0 0 0 1.5px var(--accent),var(--surface-shadow)}
+  .fn-t{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+  .fn .num{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 6px;border-radius:9999px;background:color-mix(in oklab,var(--accent) 14%,transparent);color:var(--accent);font-size:var(--text-xs);font-weight:600}
+  .fn-name{font-weight:600;color:var(--foreground);font-size:var(--text-sm)}
+  .sub{display:flex;gap:10px;margin-bottom:8px}
+  .sub-k{flex:0 0 80px;font-size:var(--text-xs);color:var(--muted);background:var(--default);border-radius:var(--radius);height:22px;line-height:22px;text-align:center;margin-top:1px}
+  .sub-v{flex:1;min-width:0;font-size:var(--text-sm);color:var(--foreground)}
+  .spec-tb{width:100%;font-size:var(--text-xs);border-collapse:separate;border-spacing:0;border:1px solid var(--border);border-radius:var(--radius-lg,calc(var(--radius) * 1.5));overflow:hidden;background:var(--surface)}
+  .spec-tb th{background:var(--surface-secondary);color:var(--muted);font-weight:500;text-align:left;padding:6px 8px;border-bottom:1px solid var(--border)}
+  .spec-tb td{padding:6px 8px;border-bottom:1px solid var(--separator);color:var(--foreground);vertical-align:top;min-height:24px}
+  .spec-tb td[data-edit]:empty::after{content:"点击填写";color:var(--field-placeholder)}
+  .spec-tb tr:last-child td{border-bottom:none}
+  .lock{color:var(--muted)}
+  .rules > div{position:relative;padding-left:14px;margin-top:4px}
+  .rules > div:first-child{margin-top:0}
+  .rules > div::before{content:"•";position:absolute;left:2px;color:var(--muted)}
+  /* 右侧需求说明显隐开关 */
+  #protoWrap{width:62%}
+  body[data-spec="hidden"] #protoWrap{width:100%}
+  body[data-spec="hidden"] #specDivider,
+  body[data-spec="hidden"] #specAside{display:none}
+  #specToggle{position:absolute;right:20px;bottom:20px;z-index:40;box-shadow:var(--overlay-shadow)}
+</style>
+</head>
+<!-- ★替换点2：data-module = 系统名（导出文件名用）；data-active-menu = 默认打开的菜单 id -->
+<body class="text-sm" data-module="★系统名" data-active-menu="demo" data-spec="shown">
+
+<div class="flex w-full min-w-[1280px] min-h-screen">
+
+  <!-- ==================== 左：功能原型区（Vue 托管） ==================== -->
+  <div id="protoWrap" class="relative shrink-0">
+    <div id="app" v-cloak class="p-4"></div>
+    <!-- 需求说明显隐开关：始终贴在左侧原型区右下角 -->
+    <button id="specToggle" type="button" class="button button--secondary button--sm" onclick="toggleSpec()" title="显示 / 隐藏右侧需求说明">
+      <svg class="lucide" data-icon="hide" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2" /><path d="M15 3v18" /><path d="m8 9 3 3-3 3" /></svg>
+      <svg class="lucide hidden" data-icon="show" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2" /><path d="M15 3v18" /><path d="m10 15-3-3 3-3" /></svg>
+      <span id="specToggleText">隐藏需求说明</span>
+    </button>
+  </div>
+
+  <!-- 分割线：虚线 + 竖排文字，均深黑（规范锁定，勿改） -->
+  <div id="specDivider" class="w-10 shrink-0 my-4 flex flex-col items-center">
+    <div class="flex-1 border-l-2 border-dashed border-black"></div>
+    <span class="my-2 text-xs text-black font-medium select-none" style="writing-mode:vertical-rl;letter-spacing:6px">分割线</span>
+    <div class="flex-1 border-l-2 border-dashed border-black"></div>
+  </div>
+
+  <!-- ==================== 右：需求说明（静态 DOM，可编辑；随菜单切换） ==================== -->
+  <aside id="specAside" class="flex-1 overflow-y-auto py-4 pr-5 h-[calc(100vh-32px)]">
+    <div class="alert alert--warning mb-3" role="note">
+      <span class="alert__indicator">
+        <svg class="lucide" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" /></svg>
+      </span>
+      <div class="alert__content">
+        <div class="alert__title">怎么看这份说明</div>
+        <div class="alert__description flex flex-col gap-0.5">
+          <div>右侧说明跟随左侧菜单切换：一个菜单一份完整说明，菜单内切换页面 / 弹窗时说明不变。</div>
+          <div>点「编辑需求说明」可直接改（自动保存到本机浏览器）；</div>
+          <div>点编号气泡后可定位到具体的功能描述，编号不是具体的功能需求，是功能编号；</div>
+          <div>带 🔒 的列与左侧原型强绑定，<b>不可修改</b>。</div>
+          <div class="mt-1 pt-1 border-t border-dashed border-warning">改动只存在本机浏览器缓存里，Agent 看不到。改完请点底部「导出 HTML」，再把导出的文件交给 Agent 合并。</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 可编辑区：每个菜单一个 pane（★第二个菜单从这里往后追加，见 checklist） -->
+    <div id="specBody">
+
+      <!-- ========== 菜单：★示例菜单名（替换为真实菜单，再复制本块追加新菜单） ========== -->
+      <div class="menu-pane" data-menu="demo" data-label="★示例菜单名">
+        <div class="text-xs text-muted mb-2">当前菜单：<b class="text-foreground">★示例菜单名</b> —— 本菜单全部功能点的说明汇总于此</div>
+
+        <section class="mb-4">
+          <h3 class="text-sm font-semibold text-foreground border-l-[3px] border-accent pl-2 mb-2">一、页面概述</h3>
+          <div class="bg-surface rounded-2xl shadow-surface p-3">
+            <div class="sub"><div class="sub-k">菜单位置</div><div class="sub-v" data-edit>★一级分组 · 菜单名</div></div>
+            <div class="sub"><div class="sub-k">解决问题</div><div class="sub-v" data-edit>★一句话说明该菜单解决什么问题</div></div>
+            <div class="sub"><div class="sub-k">权限说明</div><div class="sub-v">
+              <div class="text-xs text-muted mb-1">🔒 功能点列与左侧原型强绑定，不可修改；操作权限 / 数据权限 / 备注三列可在「编辑需求说明」下修改</div>
+              <table class="spec-tb">
+                <thead><tr>
+                  <th style="width:20%">功能点 🔒</th>
+                  <th style="width:24%">操作权限 ✏</th>
+                  <th style="width:38%">数据权限 ✏</th>
+                  <th style="width:18%">备注 ✏</th>
+                </tr></thead>
+                <tbody>
+                  <!-- ★ 每个功能点一行；第 1 列不可改，其余三列可改；数据权限一般只写列表类，其余留空 -->
+                  <!-- ★ 强制：第 2/3/4 列初始一律留空，不得预填角色/数据口径，交给用户自己填 -->
+                  <tr><td class="lock">★示例列表</td><td data-edit></td><td data-edit></td><td data-edit></td></tr>
+                  <tr><td class="lock">★示例新增</td><td data-edit></td><td data-edit></td><td data-edit></td></tr>
+                  <tr><td class="lock">★示例编辑</td><td data-edit></td><td data-edit></td><td data-edit></td></tr>
+                  <tr><td class="lock">★示例详情</td><td data-edit></td><td data-edit></td><td data-edit></td></tr>
+                </tbody>
+              </table>
+            </div></div>
+          </div>
+        </section>
+
+        <section>
+          <h3 class="text-sm font-semibold text-foreground border-l-[3px] border-accent pl-2 mb-2">二、功能说明</h3>
+
+          <!-- ★ 列表类功能点：交互 / 状态流转 / 列表字段表 / 数据排序 -->
+          <div class="fn item" data-k="①" onclick="flashAllNoScroll('①')">
+            <div class="fn-t">
+              <span class="num">①</span>
+              <span class="fn-name">★示例列表</span>
+            </div>
+            <div class="sub"><div class="sub-k">交互</div><div class="sub-v" data-edit>★打开菜单默认进入列表；填写筛选条件后点「查询」，空值条件忽略、多条件取交集；切换页码携带当前筛选条件。</div></div>
+            <!-- ★ 原型无状态变更入口时一律留空，不脑补 -->
+            <div class="sub"><div class="sub-k">状态流转</div><div class="sub-v" data-edit></div></div>
+            <div class="sub"><div class="sub-k">列表字段</div><div class="sub-v">
+              <table class="spec-tb">
+                <thead><tr>
+                  <th style="width:20%">元素 🔒</th>
+                  <th style="width:56%">展示逻辑说明 ✏</th>
+                  <th style="width:24%">备注 ✏</th>
+                </tr></thead>
+                <tbody>
+                  <!-- ★ 第 1 列不可改；「操作」行展示逻辑说明填 / ，备注写各状态下展示哪些按钮 -->
+                  <tr><td class="lock">★名称</td><td data-edit>★主题色可点击，点击跳转详情页</td><td data-edit></td></tr>
+                  <tr><td class="lock">★状态</td><td data-edit>★浅底彩色标签：状态A=灰、状态B=绿</td><td data-edit></td></tr>
+                  <tr><td class="lock">★创建时间</td><td data-edit>★日期时间展示到秒，格式 YYYY-MM-DD HH:mm:ss</td><td data-edit></td></tr>
+                  <tr><td class="lock">操作</td><td data-edit>/</td><td data-edit>★更多菜单内展示「详情」「编辑」；全部状态均展示</td></tr>
+                </tbody>
+              </table>
+            </div></div>
+            <div class="sub"><div class="sub-k">数据排序</div><div class="sub-v" data-edit>★默认按创建时间倒序；筛选、翻页后排序规则不变。</div></div>
+          </div>
+
+          <!-- ★ 表单类功能点：交互（写明页面 or 弹窗） / 字段说明表 / 业务规则
+               列权限分两种：新增类（录入/新增）= 仅「备注」列可改，其余全锁；
+                            编辑类（编辑）= 「必填 / 校验规则 / 默认值 / 备注」四列可改，仅元素与类型两列锁定 -->
+          <div class="fn item" data-k="②" onclick="flashAllNoScroll('②')">
+            <div class="fn-t">
+              <span class="num">②</span>
+              <span class="fn-name">★示例新增</span>
+            </div>
+            <div class="sub"><div class="sub-k">交互</div><div class="sub-v" data-edit>★点列表右上角「新增」按钮，弹出「新增」弹窗（非独立页面）；填写后点「保存」提交。</div></div>
+            <div class="sub"><div class="sub-k">字段说明</div><div class="sub-v">
+              <div class="text-xs text-muted mb-1">🔒 除「备注」列外均不可修改，且不支持增删行 / 列</div>
+              <table class="spec-tb">
+                <thead><tr>
+                  <th style="width:16%">元素 🔒</th>
+                  <th style="width:14%">类型 🔒</th>
+                  <th style="width:10%">必填 🔒</th>
+                  <th style="width:32%">校验规则 🔒</th>
+                  <th style="width:12%">默认值 🔒</th>
+                  <th style="width:16%">备注 ✏</th>
+                </tr></thead>
+                <tbody>
+                  <tr><td class="lock">★字段A</td><td class="lock">单行文本</td><td class="lock">是</td><td class="lock">★2–20 字符</td><td class="lock">空</td><td data-edit></td></tr>
+                  <tr><td class="lock">★字段B</td><td class="lock">下拉单选</td><td class="lock">是</td><td class="lock">★枚举：A / B</td><td class="lock">空</td><td data-edit></td></tr>
+                </tbody>
+              </table>
+            </div></div>
+            <div class="sub"><div class="sub-k">业务规则</div><div class="sub-v rules" data-edit>
+              <div data-edit>★必填项未填写时保存被拦截，字段下方红字提示且不关闭弹窗。</div>
+              <div data-edit>★保存成功后新数据插入列表首行，提示「新增成功」。</div>
+            </div></div>
+          </div>
+
+          <!-- ★ 详情类功能点：交互 / 展示元素说明表（分组与字段名不可改） -->
+          <div class="fn item" data-k="③" onclick="flashAllNoScroll('③')">
+            <div class="fn-t">
+              <span class="num">③</span>
+              <span class="fn-name">★示例详情</span>
+            </div>
+            <div class="sub"><div class="sub-k">交互</div><div class="sub-v" data-edit>★点列表中的名称，或行操作「更多」→「详情」，跳转到详情页面（非弹窗）；点「返回列表」返回。</div></div>
+            <div class="sub"><div class="sub-k">展示元素</div><div class="sub-v">
+              <div class="text-xs text-muted mb-1">🔒 分组与字段名不可修改；无分组时去掉「分组」列</div>
+              <table class="spec-tb">
+                <thead><tr>
+                  <th style="width:16%">分组 🔒</th>
+                  <th style="width:22%">字段名 🔒</th>
+                  <th style="width:42%">展示逻辑说明 ✏</th>
+                  <th style="width:20%">备注 ✏</th>
+                </tr></thead>
+                <tbody>
+                  <tr><td class="lock">头部信息</td><td class="lock">★名称</td><td data-edit>★大号加粗文本展示</td><td data-edit></td></tr>
+                  <tr><td class="lock">基本信息</td><td class="lock">★字段A</td><td data-edit>★文本展示，为空时展示「—」</td><td data-edit></td></tr>
+                </tbody>
+              </table>
+            </div></div>
+          </div>
+
+          <!-- ★ 表单类（编辑类）功能点：必填 / 校验规则 / 默认值 / 备注四列可改，仅元素与类型两列锁定；回显但不可编辑的字段写进备注列 -->
+          <div class="fn item" data-k="④" onclick="flashAllNoScroll('④')">
+            <div class="fn-t">
+              <span class="num">④</span>
+              <span class="fn-name">★示例编辑</span>
+            </div>
+            <div class="sub"><div class="sub-k">交互</div><div class="sub-v" data-edit>★点行操作「更多」→「编辑」，或详情页右上角「编辑」，弹出「编辑」弹窗（非独立页面），回显当前数据；修改后点「保存」提交。</div></div>
+            <div class="sub"><div class="sub-k">字段说明</div><div class="sub-v">
+              <div class="text-xs text-muted mb-1">🔒 仅元素与类型两列不可修改，且不支持增删行 / 列</div>
+              <table class="spec-tb">
+                <thead><tr>
+                  <th style="width:16%">元素 🔒</th>
+                  <th style="width:14%">类型 🔒</th>
+                  <th style="width:10%">必填 ✏</th>
+                  <th style="width:32%">校验规则 ✏</th>
+                  <th style="width:12%">默认值 ✏</th>
+                  <th style="width:16%">备注 ✏</th>
+                </tr></thead>
+                <tbody>
+                  <tr><td class="lock">★字段A</td><td class="lock">单行文本</td><td data-edit>是</td><td data-edit>★2–20 字符</td><td data-edit>回显当前值</td><td data-edit></td></tr>
+                  <tr><td class="lock">★字段B</td><td class="lock">下拉单选</td><td data-edit>是</td><td data-edit>★枚举：A / B</td><td data-edit>回显当前值</td><td data-edit></td></tr>
+                </tbody>
+              </table>
+            </div></div>
+            <div class="sub"><div class="sub-k">业务规则</div><div class="sub-v rules" data-edit>
+              <div data-edit>★必填项清空后保存被拦截，字段下方红字提示且不关闭弹窗。</div>
+              <div data-edit>★保存成功后列表中该行数据原位更新，提示「保存成功」。</div>
+            </div></div>
+          </div>
+
+          <!-- ★ 可视化类（看板）示例：交互 / 数据逻辑（写清每个指标的计算公式，需求没定义的留空）。用时去掉注释、左侧挂同一编号、权限表加一行
+          <div class="fn item" data-k="⑤" onclick="flashAllNoScroll('⑤')">
+            <div class="fn-t"><span class="num">⑤</span><span class="fn-name">★示例看板</span></div>
+            <div class="sub"><div class="sub-k">交互</div><div class="sub-v" data-edit>★打开菜单后展示看板；切换统计周期后各图表按新周期重新计算。</div></div>
+            <div class="sub"><div class="sub-k">数据逻辑</div><div class="sub-v rules" data-edit>
+              <div data-edit>★新增数：统计周期内创建的记录条数</div>
+              <div data-edit></div>
+            </div></div>
+          </div>
+          -->
+
+          <!-- ★ 其他类（删除等单动作）示例：交互 / 业务规则（多条规则分多行，每条一个 data-edit 的 div）。用时去掉注释、左侧挂同一编号、权限表加一行
+          <div class="fn item" data-k="⑥" onclick="flashAllNoScroll('⑥')">
+            <div class="fn-t"><span class="num">⑥</span><span class="fn-name">★示例删除</span></div>
+            <div class="sub"><div class="sub-k">交互</div><div class="sub-v" data-edit>★点行操作「更多」→「删除」，弹出二次确认框；点「确定」后删除并刷新列表。</div></div>
+            <div class="sub"><div class="sub-k">业务规则</div><div class="sub-v rules" data-edit>
+              <div data-edit>★删除前校验 xx，不满足时提示「xx」且不删除。</div>
+            </div></div>
+          </div>
+          -->
+        </section>
+      </div>
+
+      <!-- ★ 新菜单说明 pane 追加到这里：<div class="menu-pane hidden" data-menu="xxx" data-label="订单管理">…</div> -->
+
+    </div>
+      <!-- 工具条（不随内容保存），吸附在右侧说明区底部 -->
+    <div id="toolbar" class="sticky bottom-0 z-20 mt-3 px-3 py-2 rounded-2xl bg-surface shadow-overlay flex flex-wrap items-center gap-2">
+      <button id="btnEdit" type="button" onclick="setEdit(!editing)" class="button button--primary button--sm">
+        <svg class="lucide" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" /><path d="m15 5 4 4" /></svg>
+        <span id="btnEditText">编辑需求说明</span>
+      </button>
+      <button type="button" onclick="addSection()" class="button button--secondary button--sm">
+        <svg class="lucide" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14" /><path d="M12 5v14" /></svg>
+        新增章节
+      </button>
+      <button type="button" onclick="exportHtml()" class="button button--secondary button--sm">
+        <svg class="lucide" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" /><path d="M14 2v5a1 1 0 0 0 1 1h5" /><path d="M12 18v-6" /><path d="m9 15 3 3 3-3" /></svg>
+        导出 HTML
+      </button>
+      <button type="button" onclick="openAiPrompt()" class="button button--secondary button--sm">
+        <svg class="lucide" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8V4H8" /><rect width="16" height="12" x="4" y="8" rx="2" /><path d="M2 14h2" /><path d="M20 14h2" /><path d="M15 13v2" /><path d="M9 13v2" /></svg>
+        导出给 AI
+      </button>
+      <button type="button" onclick="resetSpec()" class="button button--ghost button--sm">
+        <svg class="lucide" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /></svg>
+        恢复默认
+      </button>
+      <span id="saveTip" class="text-xs text-muted"></span>
+    </div>
+</aside>
+</div>
+
+<!-- ==================== 导出给 AI 的弹窗（静态 DOM，不随说明保存） ==================== -->
+<div id="aiPromptModal" class="modal__backdrop modal__backdrop--opaque hidden" data-slot="modal-backdrop" onclick="if(event.target===this)closeAiPrompt()">
+  <div class="modal__container" data-slot="modal-container" data-placement="auto">
+    <section class="modal__dialog modal__dialog--lg" data-slot="modal-dialog" data-placement="auto" role="dialog" aria-modal="true" aria-label="导出给 AI" tabindex="-1">
+      <button type="button" class="close-button close-button--default modal__close-trigger" data-slot="modal-close-trigger" aria-label="关闭" onclick="closeAiPrompt()">
+        <svg class="lucide" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
+      </button>
+      <div class="modal__header" data-slot="modal-header"><h2 class="modal__heading" data-slot="modal-heading">导出给 AI</h2></div>
+      <div class="modal__body flex flex-col gap-2" data-slot="modal-body">
+        <p class="text-muted">把下面的提示词和这份原型 HTML 一起交给 Claude Code 或 Codex，它会按说明实现需求；留空的项标成「未提供，需确认」，AI 会先问你。</p>
+        <textarea id="aiPromptText" class="textarea textarea--full-width font-mono text-xs h-80" readonly aria-label="给 AI 的提示词"></textarea>
+        <span id="aiPromptTip" class="text-xs text-muted"></span>
+      </div>
+      <div class="modal__footer" data-slot="modal-footer">
+        <button type="button" class="button button--secondary button--md" onclick="downloadAiPrompt()">
+          <svg class="lucide" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" /><path d="M14 2v5a1 1 0 0 0 1 1h5" /><path d="M12 18v-6" /><path d="m9 15 3 3 3-3" /></svg>
+          下载 .md
+        </button>
+        <button type="button" class="button button--primary button--md" onclick="copyAiPrompt()">
+          <svg class="lucide" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2" /><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" /></svg>
+          复制
+        </button>
+      </div>
+    </section>
+  </div>
+</div>
+
+<!-- ==================== 左侧原型模板（不被渲染覆盖，导出时原样保留） ==================== -->
+<script type="text/x-template" id="protoTpl">
+<div class="bg-surface rounded-3xl shadow-surface overflow-hidden flex h-[calc(100vh-32px)]">
+  <aside class="w-[184px] shrink-0 bg-surface-secondary flex flex-col">
+    <div class="h-14 flex items-center gap-2 px-4">
+      <span class="avatar avatar--sm"><span class="avatar__fallback avatar__fallback--accent">★</span></span>
+      <span class="font-semibold text-foreground">★系统名</span>
+    </div>
+    <nav class="flex-1 px-2 py-1 flex flex-col gap-0.5">
+      <div class="px-3 pt-2 pb-1 text-xs text-muted">★分组名</div>
+      <div @click="switchMenu('demo')" :class="navCls(menu==='demo')">
+        <lc-icon name="layout-grid"></lc-icon>★示例菜单名
+      </div>
+      <!-- ★ 新菜单 nav 项加这里（同分组内放末尾；未实现的菜单保持置灰 + 提示） -->
+      <div class="flex items-center gap-2 px-3 py-2 rounded-xl text-muted opacity-60 cursor-not-allowed" @click="toast('该菜单暂无原型，需求评审后再补')">
+        <lc-icon name="layout-grid"></lc-icon>★未实现菜单
+      </div>
+    </nav>
+  </aside>
+
+  <div class="flex-1 flex flex-col min-w-0">
+    <header class="h-14 shrink-0 flex items-center justify-between px-5 border-b border-separator">
+      <div class="flex items-center gap-1.5 text-muted">
+        <span>首页</span><lc-icon name="chevron-right" class="size-3.5"></lc-icon><span>★分组名</span><lc-icon name="chevron-right" class="size-3.5"></lc-icon><span class="text-foreground">{{ menu==='demo' ? '★示例菜单名' : '' }}</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <hui-search v-model="globalQ" placeholder="搜索" class="w-56"></hui-search>
+        <button type="button" class="button button--ghost button--icon-only button--md" aria-label="通知"><lc-icon name="bell"></lc-icon></button>
+        <span class="avatar avatar--sm"><span class="avatar__fallback avatar__fallback--default">★</span></span>
+        <span class="text-foreground">★当前用户名</span>
+      </div>
+    </header>
+
+    <main class="flex-1 overflow-y-auto bg-background p-5">
+      <!-- ===== ★示例菜单：列表页 ===== -->
+      <div v-if="menu==='demo' && views.demo==='list'" class="flex flex-col gap-4">
+        <div class="flex items-start justify-between">
+          <div>
+            <h2 class="text-lg font-semibold text-foreground">★示例菜单名</h2>
+            <p class="text-muted mt-0.5">★一句页面说明</p>
+          </div>
+          <span class="relative">
+            <button type="button" class="button button--primary button--md" @click="openForm(null)"><lc-icon name="plus"></lc-icon>★主操作按钮</button>
+            <span class="num-badge" data-k="②" @click.stop="focusNum('②')">②</span>
+          </span>
+        </div>
+
+        <!-- 筛选卡片 -->
+        <div class="card card--default relative" data-slot="card">
+          <span class="num-badge" data-k="①" @click.stop="focusNum('①')">①</span>
+          <div class="card__content flex flex-wrap items-center gap-3" data-slot="card-content">
+            <hui-search v-model="q.keyword" placeholder="★筛选占位文案" class="w-60"></hui-search>
+            <hui-select v-model="q.status" :options="STATUS_OPTIONS" placeholder="状态：全部" aria-label="状态" class="w-40"></hui-select>
+            <div class="ml-auto flex gap-2">
+              <button type="button" class="button button--secondary button--md" @click="reset">重置</button>
+              <button type="button" class="button button--primary button--md" @click="toast('已按筛选条件查询')">查询</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 表格 -->
+        <div class="table-root table-root--primary" data-slot="table">
+          <div class="table__scroll-container" data-slot="table-scroll-container">
+            <table class="table__content min-w-[660px]" data-slot="table-content">
+              <thead class="table__header" data-slot="table-header">
+                <tr>
+                  <th class="table__column" data-slot="table-column">★列1</th>
+                  <th class="table__column" data-slot="table-column">状态</th>
+                  <th class="table__column" data-slot="table-column">★列3</th>
+                  <th class="table__column" data-slot="table-column">创建时间</th>
+                  <th class="table__column" data-slot="table-column">操作</th>
+                </tr>
+              </thead>
+              <tbody class="table__body" data-slot="table-body">
+                <tr v-for="c in filtered" :key="c.id" class="table__row" data-slot="table-row">
+                  <td class="table__cell" data-slot="table-cell"><a class="link cursor-pointer" @click="openDetail(c)">{{c.name}}</a></td>
+                  <td class="table__cell" data-slot="table-cell"><span :class="statusCls(c.status)" data-slot="chip"><span class="chip__label" data-slot="chip-label">{{c.status}}</span></span></td>
+                  <td class="table__cell" data-slot="table-cell">{{c.owner}}</td>
+                  <td class="table__cell text-muted" data-slot="table-cell">{{c.created}}</td>
+                  <td class="table__cell" data-slot="table-cell">
+                    <hui-menu :items="[{ key:'detail', label:'★详情', k:'③' }, { key:'edit', label:'★编辑', k:'④' }]"
+                              @select="(key) => key==='detail' ? openDetail(c) : openForm(c)"></hui-menu>
+                  </td>
+                </tr>
+                <tr v-if="!filtered.length" class="table__row" data-slot="table-row">
+                  <td colspan="5" class="table__cell" data-slot="table-cell">
+                    <div class="py-12 flex flex-col items-center gap-1 text-muted">
+                      <lc-icon name="inbox" class="size-8"></lc-icon>
+                      <div class="text-foreground">没有找到符合条件的★对象名</div>
+                      <div class="text-xs">试试调整筛选条件，或点击「★主操作按钮」新建一条</div>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <nav class="pagination pagination--sm px-4 py-3" aria-label="分页">
+            <span class="pagination__summary">共 {{filtered.length}} 条</span>
+            <ul class="pagination__content">
+              <li class="pagination__item"><button type="button" class="pagination__link pagination__link--nav" aria-label="上一页" aria-disabled="true"><lc-icon name="chevron-left"></lc-icon></button></li>
+              <li class="pagination__item"><button type="button" class="pagination__link" data-active="true" aria-current="page">1</button></li>
+              <li class="pagination__item"><button type="button" class="pagination__link pagination__link--nav" aria-label="下一页" aria-disabled="true"><lc-icon name="chevron-right"></lc-icon></button></li>
+            </ul>
+          </nav>
+        </div>
+      </div>
+
+      <!-- ===== ★示例菜单：详情页（字段分组卡片） ===== -->
+      <div v-else-if="menu==='demo' && views.demo==='detail'" class="flex flex-col gap-4">
+        <button type="button" class="button button--ghost button--sm self-start" @click="views.demo='list'"><lc-icon name="arrow-left"></lc-icon>返回★对象名列表</button>
+        <div class="card card--default" data-slot="card">
+          <div class="card__content flex items-start justify-between" data-slot="card-content">
+            <div class="flex items-center gap-3">
+              <span class="avatar avatar--lg"><span class="avatar__fallback avatar__fallback--accent">{{cur.name.charAt(0)}}</span></span>
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="text-lg font-semibold text-foreground">{{cur.name}}</span>
+                  <span :class="statusCls(cur.status)" data-slot="chip"><span class="chip__label" data-slot="chip-label">{{cur.status}}</span></span>
+                </div>
+                <div class="text-muted mt-0.5">★编号 {{cur.id}} · 创建于 {{cur.created}}</div>
+              </div>
+            </div>
+            <span class="relative">
+              <button type="button" class="button button--secondary button--md" @click="openForm(cur)"><lc-icon name="pencil"></lc-icon>编辑</button>
+              <span class="num-badge" data-k="④" @click.stop="focusNum('④')">④</span>
+            </span>
+          </div>
+        </div>
+
+        <div class="card card--default" data-slot="card">
+          <div class="card__header" data-slot="card-header"><h3 class="card__title" data-slot="card-title">基本信息</h3></div>
+          <div class="card__content grid grid-cols-3 gap-y-4 gap-x-6" data-slot="card-content">
+            <div><div class="text-muted">★字段</div><div class="text-foreground mt-1">{{cur.name}}</div></div>
+            <div><div class="text-muted">状态</div><div class="mt-1"><span :class="statusCls(cur.status)" data-slot="chip"><span class="chip__label" data-slot="chip-label">{{cur.status}}</span></span></div></div>
+            <div><div class="text-muted">负责人</div><div class="text-foreground mt-1">{{cur.owner}}</div></div>
+            <div class="col-span-3"><div class="text-muted">备注</div><div class="text-foreground mt-1">{{cur.remark}}</div></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- 新增 / 编辑弹窗 -->
+  <hui-modal v-if="form.show" :title="form.editing ? '编辑★对象名' : '新增★对象名'" @close="form.show=false">
+    <div class="grid grid-cols-2 gap-x-4 gap-y-4">
+      <div class="flex flex-col gap-1">
+        <label class="label label--required" data-slot="label">★字段名</label>
+        <input v-model="form.name" class="input input--full-width" data-slot="input" :data-invalid="err.name ? 'true' : null" :aria-invalid="err.name">
+        <span v-if="err.name" class="field-error" data-slot="field-error">★必填提示文案</span>
+      </div>
+      <div class="flex flex-col gap-1">
+        <label class="label label--required" data-slot="label">状态</label>
+        <hui-select v-model="form.status" :options="STATUS_OPTIONS" placeholder="请选择状态" aria-label="状态" :invalid="err.status" class="w-full"></hui-select>
+        <span v-if="err.status" class="field-error" data-slot="field-error">请选择状态</span>
+      </div>
+    </div>
+    <template #footer>
+      <button type="button" class="button button--secondary button--md" @click="form.show=false">取消</button>
+      <button type="button" class="button button--primary button--md" @click="save">保存</button>
+    </template>
+  </hui-modal>
+
+  <transition name="fade">
+    <div v-if="toastMsg" class="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 rounded-full bg-foreground text-background px-4 py-2 shadow-overlay">{{toastMsg}}</div>
+  </transition>
+</div>
+</script>
+
+<!-- ==================== 全局：菜单切换与编号联动 ==================== -->
+<script>
+// 只点亮当前可见 pane 内的元素，避免跨菜单误闪
+window.flashAllNoScroll = function(k){ return window.flashAll(k, { noScroll:true }) };
+window.flashAll = function(k, opts){
+  // 0) 若右侧说明处于隐藏态，先自动展开，否则点了气泡没反应
+  if(document.body.getAttribute('data-spec') === 'hidden') window.setSpecHidden(false);
+  // 1) 平滑滚动右侧说明到该功能点卡片
+  if(!(opts && opts.noScroll)){
+    var target = null;
+    document.querySelectorAll('#specBody .menu-pane').forEach(function(p){
+      if(p.classList.contains('hidden')) return;
+      var card = p.querySelector('.fn.item[data-k="'+k+'"]');
+      if(card) target = card;
+    });
+    if(target){
+      try{ target.scrollIntoView({ behavior:'smooth', block:'center' }) }catch(e){ target.scrollIntoView() }
+    }
+  }
+  // 2) 双向高亮（仅当前可见元素）
+  document.querySelectorAll('[data-k="'+k+'"]').forEach(function(el){
+    if(!el.offsetParent) return;
+    el.classList.remove('flash','flashbg'); void el.offsetWidth;
+    el.classList.add(el.classList.contains('num-badge')||el.classList.contains('num-badge-in') ? 'flash' : 'flashbg');
+  });
+};
+// 菜单切换：右侧说明 pane 与左侧菜单同步（由 Vue 的 switchMenu 调用）
+window.showMenuPane = function(m){
+  document.querySelectorAll('#specBody .menu-pane').forEach(function(p){
+    p.classList.toggle('hidden', p.getAttribute('data-menu') !== m);
+  });
+  document.body.setAttribute('data-active-menu', m);
+};
+</script>
+
+<!-- ==================== HeroUI 组件的 Vue 封装 + lucide 图标（左侧原型直接用，不要另写原生控件） ==================== -->
+<script>
+// lucide 1.60.0 的图标路径；要用新图标从 https://cdn.jsdelivr.net/npm/lucide-static@1.60.0/icons/<名称>.svg 取 <svg> 里面的内容加进来
+const ICONS = {
+  'search': '<path d="m21 21-4.34-4.34" /><circle cx="11" cy="11" r="8" />',
+  'bell': '<path d="M10.268 21a2 2 0 0 0 3.464 0" /><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326" />',
+  'plus': '<path d="M5 12h14" /><path d="M12 5v14" />',
+  'ellipsis': '<circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /><circle cx="5" cy="12" r="1" />',
+  'chevron-left': '<path d="m15 18-6-6 6-6" />',
+  'chevron-right': '<path d="m9 18 6-6-6-6" />',
+  'chevron-down': '<path d="m6 9 6 6 6-6" />',
+  'x': '<path d="M18 6 6 18" /><path d="m6 6 12 12" />',
+  'check': '<path d="M20 6 9 17l-5-5" />',
+  'pencil': '<path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" /><path d="m15 5 4 4" />',
+  'trash-2': '<path d="M10 11v6" /><path d="M14 11v6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /><path d="M3 6h18" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />',
+  'eye': '<path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" /><circle cx="12" cy="12" r="3" />',
+  'arrow-left': '<path d="m12 19-7-7 7-7" /><path d="M19 12H5" />',
+  'inbox': '<polyline points="22 12 16 12 14 15 10 15 8 12 2 12" /><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" />',
+  'funnel': '<path d="M10 20a1 1 0 0 0 .553.895l2 1A1 1 0 0 0 14 21v-7a2 2 0 0 1 .517-1.341L21.74 4.67A1 1 0 0 0 21 3H3a1 1 0 0 0-.742 1.67l7.225 7.989A2 2 0 0 1 10 14z" />',
+  'info': '<circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" />',
+  'circle-alert': '<circle cx="12" cy="12" r="10" /><line x1="12" x2="12" y1="8" y2="12" /><line x1="12" x2="12.01" y1="16" y2="16" />',
+  'file-text': '<path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" /><path d="M14 2v5a1 1 0 0 0 1 1h5" /><path d="M10 9H8" /><path d="M16 13H8" /><path d="M16 17H8" />',
+  'layout-grid': '<rect width="7" height="7" x="3" y="3" rx="1" /><rect width="7" height="7" x="14" y="3" rx="1" /><rect width="7" height="7" x="14" y="14" rx="1" /><rect width="7" height="7" x="3" y="14" rx="1" />',
+};
+
+// 选项统一成 { value, label }；可以直接传字符串数组
+const toOptions = (options) => options.map(o => typeof o === 'object' ? o : { value:o, label:o });
+// 点在元素外面、按 Esc 时关闭弹层；返回取消监听的函数
+function onOutside(getEls, close){
+  const down = (e) => { if(!getEls().some(el => el && el.contains(e.target))) close() };
+  const key = (e) => { if(e.key === 'Escape') close() };
+  document.addEventListener('mousedown', down);
+  document.addEventListener('keydown', key);
+  return () => { document.removeEventListener('mousedown', down); document.removeEventListener('keydown', key) };
+}
+// 弹层贴在触发按钮下方（React 运行时算位置，这里自己算），宽度不小于按钮
+function anchorStyle(el, alignEnd){
+  const r = el.getBoundingClientRect();
+  const style = { position:'fixed', top:(r.bottom + 6)+'px', zIndex:60, '--trigger-width':r.width+'px', minWidth:r.width+'px' };
+  if(alignEnd) style.right = (window.innerWidth - r.right)+'px'; else style.left = r.left+'px';
+  return style;
+}
+const HUI_COMPONENTS = {
+  'lc-icon': {
+    props:{ name:String },
+    computed:{ body(){ return ICONS[this.name] || '' } },
+    template:'<svg class="lucide" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" v-html="body"></svg>'
+  },
+  // 搜索框：HeroUI 的 focus 样式读 data-focus-within，不读 :focus-within
+  'hui-search': {
+    props:{ modelValue:String, placeholder:String },
+    emits:['update:modelValue'],
+    data:() => ({ focused:false }),
+    template:`<div class="search-field search-field--full-width" data-slot="search-field" :data-empty="modelValue ? null : 'true'">
+      <div class="search-field__group search-field__group--full-width" data-slot="search-field-group" role="group" :data-focus-within="focused ? 'true' : null">
+        <lc-icon name="search" class="search-field__search-icon" data-slot="search-field-search-icon"></lc-icon>
+        <input class="search-field__input" data-slot="search-field-input" type="search" :value="modelValue" :placeholder="placeholder" :aria-label="placeholder"
+               @input="$emit('update:modelValue', $event.target.value)" @focus="focused=true" @blur="focused=false">
+        <button v-if="modelValue" type="button" class="close-button search-field__clear-button" data-slot="search-field-clear-button" aria-label="清空" @click="$emit('update:modelValue','')"><lc-icon name="x"></lc-icon></button>
+      </div></div>`
+  },
+  // 下拉单选：弹层挂到 body，位置自己算；选中项打勾（stroke-dashoffset 44 显示、66 隐藏）
+  'hui-select': {
+    props:{ modelValue:[String,Number], options:Array, placeholder:String, ariaLabel:String, invalid:Boolean },
+    emits:['update:modelValue'],
+    data:() => ({ open:false, pos:{} }),
+    computed:{
+      opts(){ return toOptions(this.options || []) },
+      current(){ return this.opts.find(o => o.value === this.modelValue) }
+    },
+    methods:{
+      toggle(){
+        if(this.open){ this.close(); return }
+        this.pos = anchorStyle(this.$refs.trigger, false);
+        this.open = true;
+        this.off = onOutside(() => [this.$refs.trigger, this.$refs.pop], this.close);
+      },
+      close(){ this.open = false; if(this.off){ this.off(); this.off = null } },
+      pick(o){ this.$emit('update:modelValue', o.value); this.close() }
+    },
+    beforeUnmount(){ this.close() },
+    template:`<div class="select select--full-width" data-slot="select" :data-invalid="invalid ? 'true' : null">
+      <button ref="trigger" type="button" class="select__trigger select__trigger--full-width" data-slot="select-trigger" :aria-expanded="open" :aria-label="ariaLabel" :aria-invalid="invalid" @click="toggle">
+        <span class="select__value" data-slot="select-value" :data-empty="current ? null : 'true'">{{ current ? current.label : placeholder }}</span>
+        <lc-icon name="chevron-down" class="select__indicator" data-slot="select-default-indicator" :data-open="open ? 'true' : null"></lc-icon>
+      </button>
+      <teleport to="body"><div v-if="open" ref="pop" class="select__popover" data-slot="select-popover" data-placement="bottom" :style="pos">
+        <div class="list-box list-box--default" data-slot="list-box" role="listbox" :aria-label="ariaLabel">
+          <div v-for="o in opts" :key="o.value" class="list-box-item list-box-item--default" data-slot="list-box-item" role="option"
+               :data-selected="o.value===modelValue ? 'true' : null" :aria-selected="o.value===modelValue" @click="pick(o)">
+            {{o.label}}
+            <span class="list-box-item__indicator" data-slot="list-box-item-indicator" :data-visible="o.value===modelValue ? 'true' : null" aria-hidden="true">
+              <svg data-slot="list-box-item-indicator--checkmark" viewBox="0 0 17 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="22" :stroke-dashoffset="o.value===modelValue ? 44 : 66"><polyline points="1 9 7 14 15 4"/></svg>
+            </span>
+          </div>
+        </div></div></teleport></div>`
+  },
+  // 行内「更多」菜单：items 每项 { key, label, danger?, k? }，k 是编号气泡
+  'hui-menu': {
+    props:{ items:Array, label:{ type:String, default:'更多操作' } },
+    emits:['select'],
+    data:() => ({ open:false, pos:{} }),
+    methods:{
+      toggle(){
+        if(this.open){ this.close(); return }
+        this.pos = anchorStyle(this.$refs.trigger, true);
+        this.open = true;
+        this.off = onOutside(() => [this.$refs.trigger, this.$refs.pop], this.close);
+      },
+      close(){ this.open = false; if(this.off){ this.off(); this.off = null } },
+      pick(item){ this.close(); this.$emit('select', item.key) }
+    },
+    beforeUnmount(){ this.close() },
+    template:`<span class="dropdown" data-slot="dropdown">
+      <button ref="trigger" type="button" class="button button--ghost button--icon-only button--sm dropdown__trigger" data-slot="dropdown-trigger" :aria-label="label" :aria-expanded="open" @click.stop="toggle"><lc-icon name="ellipsis"></lc-icon></button>
+      <teleport to="body"><div v-if="open" ref="pop" class="dropdown__popover" data-slot="dropdown-popover" data-placement="bottom" :style="pos">
+        <div class="menu dropdown__menu p-1" data-slot="dropdown-menu" role="menu">
+          <div v-for="it in items" :key="it.key" :class="['menu-item', it.danger ? 'menu-item--danger' : '']" data-slot="menu-item" role="menuitem" @click="pick(it)">
+            <span data-slot="label" class="flex-1">{{it.label}}</span>
+            <span v-if="it.k" class="num-badge-in" :data-k="it.k" @click.stop="focusNum(it.k)">{{it.k}}</span>
+          </div>
+        </div></div></teleport></span>`,
+    setup(){ return { focusNum:(k) => window.flashAll(k) } }
+  },
+  // 复选框：选中、半选靠 data-selected / data-indeterminate，HeroUI 不读原生 :checked
+  'hui-checkbox': {
+    props:{ modelValue:Boolean, indeterminate:Boolean, ariaLabel:String },
+    emits:['update:modelValue'],
+    methods:{ flip(){ this.$emit('update:modelValue', !this.modelValue) } },
+    template:`<label class="checkbox" data-slot="checkbox" role="checkbox" tabindex="0" :aria-label="ariaLabel" :aria-checked="indeterminate ? 'mixed' : String(modelValue)"
+        :data-selected="modelValue ? 'true' : null" :data-indeterminate="indeterminate ? 'true' : null" @click.prevent="flip" @keydown.space.prevent="flip">
+      <span class="checkbox__content" data-slot="checkbox-content">
+        <span class="checkbox__control" data-slot="checkbox-control"><span class="checkbox__indicator" data-slot="checkbox-indicator" aria-hidden="true">
+          <svg v-if="indeterminate" data-slot="checkbox-default-indicator--indeterminate" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="21" x2="3" y1="12" y2="12"/></svg>
+          <svg v-else data-slot="checkbox-default-indicator--checkmark" viewBox="0 0 17 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="22" :stroke-dashoffset="modelValue ? 44 : 66"><polyline points="1 9 7 14 15 4"/></svg>
+        </span></span>
+        <span v-if="$slots.default" class="label" data-slot="label"><slot></slot></span>
+      </span></label>`
+  },
+  // 单选组：用原生 radio，HeroUI 认 :has(input:checked)；radio__indicator 里不能有任何字符
+  'hui-radio-group': {
+    props:{ modelValue:[String,Number], options:Array, name:String, ariaLabel:String },
+    emits:['update:modelValue'],
+    computed:{ opts(){ return toOptions(this.options || []) } },
+    template:`<div class="radio-group" role="radiogroup" :aria-label="ariaLabel">
+      <label v-for="o in opts" :key="o.value" class="radio" data-slot="radio" :data-selected="o.value===modelValue ? '' : null">
+        <span class="radio__content" data-slot="radio-content"><input type="radio" :name="name" :value="o.value" :checked="o.value===modelValue" @change="$emit('update:modelValue', o.value)" style="position:absolute;opacity:0;width:1px;height:1px"><span class="radio__control" data-slot="radio-control"><span class="radio__indicator" data-slot="radio-indicator" aria-hidden="true"></span></span><span class="label" data-slot="label">{{o.label}}</span></span>
+      </label></div>`
+  },
+  // 页签：选中靠 data-selected，选中的 tab 里放 indicator；面板内容放默认插槽
+  'hui-tabs': {
+    props:{ modelValue:[String,Number], tabs:Array, ariaLabel:String },
+    emits:['update:modelValue'],
+    computed:{ opts(){ return toOptions(this.tabs || []) } },
+    template:`<div class="tabs" data-slot="tabs">
+      <div class="tabs__list-container" data-slot="tabs-list-container"><div class="tabs__list" data-slot="tabs-list" role="tablist" data-orientation="horizontal" :aria-label="ariaLabel">
+        <div v-for="t in opts" :key="t.value" class="tabs__tab" data-slot="tabs-tab" role="tab" tabindex="0" :data-selected="t.value===modelValue ? 'true' : null" :aria-selected="t.value===modelValue"
+             @click="$emit('update:modelValue', t.value)" @keydown.enter="$emit('update:modelValue', t.value)"><div v-if="t.value===modelValue" class="tabs__indicator" data-slot="tabs-indicator"></div>{{t.label}}</div>
+      </div></div>
+      <div class="tabs__panel" data-slot="tabs-panel" role="tabpanel"><slot></slot></div></div>`
+  },
+  // 弹窗：挂载即打开；点遮罩、右上角关闭、按 Esc 都触发 close
+  'hui-modal': {
+    props:{ title:String, size:{ type:String, default:'md' } },
+    emits:['close'],
+    mounted(){ this.esc = (e) => { if(e.key === 'Escape') this.$emit('close') }; document.addEventListener('keydown', this.esc) },
+    beforeUnmount(){ document.removeEventListener('keydown', this.esc) },
+    template:`<div class="modal__backdrop modal__backdrop--opaque" data-slot="modal-backdrop" @click.self="$emit('close')">
+      <div class="modal__container" data-slot="modal-container" data-placement="auto">
+        <section :class="['modal__dialog', 'modal__dialog--' + size]" data-slot="modal-dialog" data-placement="auto" role="dialog" aria-modal="true" :aria-label="title" tabindex="-1">
+          <button type="button" class="close-button close-button--default modal__close-trigger" data-slot="modal-close-trigger" aria-label="关闭" @click="$emit('close')"><lc-icon name="x"></lc-icon></button>
+          <div class="modal__header" data-slot="modal-header"><h2 class="modal__heading" data-slot="modal-heading">{{title}}</h2></div>
+          <div class="modal__body" data-slot="modal-body"><slot></slot></div>
+          <div v-if="$slots.footer" class="modal__footer" data-slot="modal-footer"><slot name="footer"></slot></div>
+        </section></div></div>`
+  },
+  // 右侧抽屉：用法同弹窗；默认宽 384px，width 可改（如 '480px'）
+  'hui-drawer': {
+    props:{ title:String, width:String },
+    emits:['close'],
+    mounted(){ this.esc = (e) => { if(e.key === 'Escape') this.$emit('close') }; document.addEventListener('keydown', this.esc) },
+    beforeUnmount(){ document.removeEventListener('keydown', this.esc) },
+    template:`<div>
+      <div class="drawer__backdrop drawer__backdrop--opaque" data-slot="drawer-backdrop" @click="$emit('close')"></div>
+      <div class="drawer__content drawer__content--right" data-slot="drawer-content" data-placement="right" @click.self="$emit('close')">
+        <section class="drawer__dialog drawer__dialog--right" data-slot="drawer-dialog" data-placement="right" :style="width ? { width } : null" role="dialog" aria-modal="true" :aria-label="title" tabindex="-1">
+          <button type="button" class="close-button close-button--default drawer__close-trigger" data-slot="drawer-close-trigger" aria-label="关闭" @click="$emit('close')"><lc-icon name="x"></lc-icon></button>
+          <div class="drawer__header" data-slot="drawer-header"><h2 class="drawer__heading" data-slot="drawer-heading">{{title}}</h2></div>
+          <div class="drawer__body" data-slot="drawer-body"><slot></slot></div>
+          <div v-if="$slots.footer" class="drawer__footer" data-slot="drawer-footer"><slot name="footer"></slot></div>
+        </section></div></div>`
+  }
+};
+</script>
+
+<!-- ==================== 左侧原型：Vue ==================== -->
+<script>
+const { createApp, ref, reactive, computed } = Vue;
+const INIT_MENU = document.body.getAttribute('data-active-menu') || 'demo';
+const app = createApp({
+  template: document.getElementById('protoTpl').innerHTML,
+  setup(){
+    const menu = ref(INIT_MENU);
+    const views = reactive({ demo:'list' });   // ★ 新菜单在此加 demo2:'list'
+    const toastMsg = ref('');
+    let timer;
+    const toast = (m)=>{ toastMsg.value=m; clearTimeout(timer); timer=setTimeout(()=>toastMsg.value='',2200) };
+    const focusNum = (k)=> window.flashAll(k);
+    const switchMenu = (m)=>{ menu.value=m; window.showMenuPane(m) };
+    // 左侧导航项：选中用主题色浅底
+    const navCls = (isOn)=> ['flex items-center gap-2 px-3 py-2 rounded-xl cursor-pointer transition-colors',
+      isOn ? 'bg-[color-mix(in_oklab,var(--accent)_12%,transparent)] text-accent font-medium' : 'text-foreground hover:bg-default'];
+    const globalQ = ref('');
+
+    /* ---------- ★示例菜单的数据与逻辑（新菜单照此再写一套，变量名加前缀避免冲突） ---------- */
+    const STATUS_OPTIONS = ['★枚举1', '★枚举2'];
+    const q = reactive({ keyword:'', status:'' });
+    const list = ref([
+      { id:'★前缀-2026-0001', name:'★虚构业务名称A', status:'★枚举1', owner:'★虚构姓名1', created:'2026-09-28', remark:'★贴近业务的虚构备注' }
+      // ★ 补到 8~10 条贴近真实格式的虚构中文业务数据（不用真实企业名称和真实手机号，手机号用 138 0000 xxxx 这类号段）
+    ]);
+    const filtered = computed(() => list.value.filter(c =>
+      (!q.keyword || (c.name+c.owner).includes(q.keyword)) && (!q.status || c.status===q.status)
+    ));
+    const cur = ref(list.value[0]);
+    const emptyForm = () => ({ id:'', name:'', status:'', owner:'', remark:'', editing:false, show:false });
+    const form = reactive(emptyForm());
+    const err = reactive({ name:false, status:false });
+    const reset = ()=>{ Object.assign(q,{keyword:'',status:''}); toast('筛选条件已重置') };
+    // 状态标签：HeroUI chip 的颜色变体（success / warning / danger / accent / default）+ soft 浅底
+    const statusCls = (s)=> ['chip chip--soft chip--sm', ({'★枚举1':'chip--success','★枚举2':'chip--default'}[s] || 'chip--default')];
+    const openDetail = (c)=>{ cur.value=c; views.demo='detail' };
+    const openForm = (c)=>{
+      Object.assign(form, emptyForm());
+      Object.keys(err).forEach(k=>err[k]=false);
+      if(c){ Object.assign(form, JSON.parse(JSON.stringify(c))); form.editing=true }
+      form.show=true;
+    };
+    const save = ()=>{
+      err.name = !(form.name.length>=2 && form.name.length<=20);
+      err.status = !form.status;
+      if(Object.values(err).some(Boolean)){ toast('请先修正标红字段后再保存'); return }
+      if(form.editing){
+        const i = list.value.findIndex(c=>c.id===form.id);
+        list.value[i] = { ...JSON.parse(JSON.stringify(form)) };
+        toast('保存成功');
+      }else{
+        list.value.unshift({ ...JSON.parse(JSON.stringify(form)), id:'★前缀-2026-'+(1001+list.value.length), created:new Date().toISOString().slice(0,10) });
+        toast('新增成功，已插入列表首行');
+      }
+      form.show=false;
+    };
+
+    return { menu, views, toastMsg, toast, focusNum, switchMenu, navCls, globalQ,
+      STATUS_OPTIONS, q, list, filtered, cur, form, err, reset, statusCls, openDetail, openForm, save };
+  }
+});
+Object.entries(HUI_COMPONENTS).forEach(([name, def]) => app.component(name, def));
+app.mount('#app');
+</script>
+
+<!-- ==================== 右侧说明：编辑与持久化 ==================== -->
+<script>
+// ★ 每次新建系统生成一个新的 key，避免与别的原型串味
+var PROTO_KEY = "proto-★系统拼音-x1y2z3";
+var body = document.getElementById('specBody');
+var editing = false, saveTimer = null;
+
+function loadSaved(){
+  try{ var s = localStorage.getItem(PROTO_KEY); if(s) body.innerHTML = s; }catch(e){}
+}
+function save(){
+  try{ localStorage.setItem(PROTO_KEY, body.innerHTML);
+    var t = document.getElementById('saveTip'); t.textContent = '已自动保存 ' + new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    setTimeout(function(){ t.textContent='' }, 2000);
+  }catch(e){}
+}
+// 人工编辑标记：所有被用户改过的单元格会被打上 data-user-edited，
+// 导出后 Agent 合并时能识别出「这是人工定稿」，后续迭代不得覆盖
+function markUser(el){ if(el && el.setAttribute) el.setAttribute('data-user-edited', '1') }
+function onEdit(e){
+  var t = e && e.target;
+  var host = t && t.closest ? t.closest('[data-edit]') : null;
+  if(host) markUser(host);
+  clearTimeout(saveTimer); saveTimer = setTimeout(save, 300);
+}
+
+loadSaved();
+
+/* ---------- 右侧需求说明显隐开关 ---------- */
+var HIDDEN_KEY = PROTO_KEY + ':hidden';
+function setSpecHidden(hidden, persist){
+  document.body.setAttribute('data-spec', hidden ? 'hidden' : 'shown');
+  var btn = document.getElementById('specToggle');
+  if(btn){
+    btn.querySelector('[data-icon="hide"]').classList.toggle('hidden', hidden);
+    btn.querySelector('[data-icon="show"]').classList.toggle('hidden', !hidden);
+    document.getElementById('specToggleText').textContent = hidden ? '需求说明' : '隐藏需求说明';
+  }
+  if(persist !== false){ try{ localStorage.setItem(HIDDEN_KEY, hidden ? '1' : '0') }catch(e){} }
+}
+window.setSpecHidden = setSpecHidden;
+window.toggleSpec = function(){ setSpecHidden(document.body.getAttribute('data-spec') !== 'hidden', true) };
+function initSpecHidden(){
+  var v = null;
+  try{ v = localStorage.getItem(HIDDEN_KEY) }catch(e){}
+  // 有缓存以缓存为准；无缓存则沿用导出文件自带的 data-spec（保证导出后状态一致）
+  var hidden = v === null ? (document.body.getAttribute('data-spec') === 'hidden') : v === '1';
+  setSpecHidden(hidden, false);
+}
+initSpecHidden();
+body.addEventListener('input', onEdit);
+
+function setEdit(on){
+  editing = on;
+  body.classList.toggle('editing', on);
+  body.querySelectorAll('[data-edit]').forEach(function(el){
+    if(on){ el.setAttribute('contenteditable','true') } else { el.removeAttribute('contenteditable') }
+  });
+  body.querySelectorAll('table[data-editable-table]').forEach(function(tb){
+    tb.querySelectorAll('td.row-del').forEach(function(td){ td.remove() });
+    if(on){
+      tb.querySelectorAll('tbody tr').forEach(function(tr){
+        var td = document.createElement('td');
+        td.className = 'row-del';
+        td.innerHTML = '<button class="button button--ghost button--sm" onclick="delRow(this)">删除</button>';
+        tr.appendChild(td);
+      });
+    }
+  });
+  document.getElementById('btnEditText').textContent = on ? '完成编辑' : '编辑需求说明';
+  save();
+}
+
+function addSection(){
+  var name = prompt('新章节名称', '自定义章节'); if(name === null) return;
+  var sec = document.createElement('section');
+  sec.className = 'mb-4 user-section';
+  sec.innerHTML =
+    '<div class="flex items-center justify-between mb-2">' +
+      '<h3 class="text-sm font-semibold text-foreground border-l-[3px] border-accent pl-2" data-edit></h3>' +
+      '<button class="button button--ghost button--sm" onclick="delSection(this)">删除章节</button>' +
+    '</div>' +
+    '<div class="bg-surface rounded-2xl shadow-surface p-3" data-edit>在此填写内容…</div>';
+  // 章节名按纯文本写入，名称里带 < 等字符也不会破坏结构
+  sec.querySelector('h3').textContent = name;
+  sec.querySelectorAll('[data-edit]').forEach(function(el){ el.setAttribute('data-user-edited','1') });
+  btnClosestPaneAppend(sec);
+  if(editing) sec.querySelectorAll('[data-edit]').forEach(function(el){ el.setAttribute('contenteditable','true') });
+  save();
+}
+// 新增段落追加到当前激活（未 hidden）的 pane，避免跨菜单串写到别的菜单说明里
+function btnClosestPaneAppend(sec){
+  var panes = body.querySelectorAll('.menu-pane');
+  var target = null;
+  panes.forEach(function(p){ if(!p.classList.contains('hidden')) target = p });
+  if(!target && panes.length) target = panes[0];
+  target.appendChild(sec);
+}
+function delSection(btn){
+  if(!confirm('确定删除该章节？删除后不可恢复（可点「恢复默认」找回初始内容）。')) return;
+  btn.closest('section').remove(); save();
+}
+function addRow(btn){
+  var tb = btn.closest('section').querySelector('table[data-editable-table] tbody');
+  var tr = tb.lastElementChild.cloneNode(true);
+  tr.querySelectorAll('td[data-edit]').forEach(function(td){ td.textContent = '待填写' });
+  var old = tr.querySelector('td.row-del'); if(old) old.remove();
+  tb.appendChild(tr);
+  if(editing){
+    var td = document.createElement('td'); td.className='row-del';
+    td.innerHTML = '<button class="button button--ghost button--sm" onclick="delRow(this)">删除</button>';
+    tr.appendChild(td);
+  }
+  save();
+}
+function delRow(btn){ btn.closest('tr').remove(); save() }
+
+function download(name, text, type){
+  var blob = new Blob([text], { type: type + ';charset=utf-8' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove() }, 1000);
+}
+// 文件名：系统名 + 用途 + 时间戳（禁止写死 / 禁止版本号）
+function _pad(n){ return String(n).length < 2 ? '0' + n : '' + n }
+function fileStamp(){
+  var d = new Date();
+  return d.getFullYear() + _pad(d.getMonth()+1) + _pad(d.getDate()) + '-' + _pad(d.getHours()) + _pad(d.getMinutes()) + _pad(d.getSeconds());
+}
+function moduleName(){
+  return (document.body.getAttribute('data-module') || document.title || '原型').replace(/[\\/:*?"<>|\s]+/g, '');
+}
+function exportHtml(){
+  setEdit(false);
+  // 导出基线：记下用户最初打开的原型文件的 key（从导出文件再导出时保留原值），合并时据此判断原型文件在导出之后有没有被改过
+  if(!body.hasAttribute('data-base-key')) body.setAttribute('data-base-key', PROTO_KEY);
+  var html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+  var newKey = 'proto-' + Math.random().toString(36).slice(2,10);
+  html = html.replace(/var PROTO_KEY = "[^"]*"/, 'var PROTO_KEY = "' + newKey + '"');
+  download(moduleName() + '-原型-' + fileStamp() + '.html', html, 'text/html');
+}
+function resetSpec(){
+  if(!confirm('恢复为生成时的初始说明？当前修改将丢失。')) return;
+  try{ localStorage.removeItem(PROTO_KEY) }catch(e){}
+  location.reload();
+}
+
+/* ---------- 导出给 AI：把当前说明区（含浏览器里改过的内容）整理成给 Claude Code / Codex 的提示词 ---------- */
+var UNKNOWN = '未提供，需确认';
+function _text(el){ return (el ? el.textContent : '').replace(/\s+/g, ' ').trim() }
+function _cell(el){ return _text(el).replace(/\|/g, '\\|') || UNKNOWN }
+function _tableMd(table){
+  var rows = Array.prototype.map.call(table.querySelectorAll('tr'), function(tr){
+    var isHead = tr.parentNode.tagName === 'THEAD';
+    return Array.prototype.map.call(tr.querySelectorAll('th,td'), function(c){
+      // 表头去掉 🔒 / ✏ 这类编辑权限标记
+      return isHead ? _text(c).replace(/[🔒✏]/g, '').trim() : _cell(c);
+    });
+  });
+  if(!rows.length) return '';
+  var head = rows[0];
+  return ['| ' + head.join(' | ') + ' |', '| ' + head.map(function(){ return '---' }).join(' | ') + ' |']
+    .concat(rows.slice(1).map(function(r){ return '| ' + r.join(' | ') + ' |' })).join('\n');
+}
+// 一个子项：表格 → Markdown 表格；业务规则 → 分条；空 → 未提供，需确认
+function _subMd(sub){
+  var key = _text(sub.querySelector('.sub-k'));
+  var v = sub.querySelector('.sub-v');
+  var table = v && v.querySelector('table');
+  if(table) return '**' + key + '**\n\n' + _tableMd(table);
+  if(v && v.classList.contains('rules')){
+    // 留空待填的条目也要标出来，不能悄悄丢掉
+    var items = Array.prototype.map.call(v.children, function(c){ return _text(c) || UNKNOWN });
+    return '**' + key + '**\n' + (items.length ? items.map(function(t){ return '- ' + t }).join('\n') : '- ' + UNKNOWN);
+  }
+  return '**' + key + '**：' + (_text(v) || UNKNOWN);
+}
+function _sectionMd(sec, parts){
+  var title = _text(sec.querySelector('h3'));
+  parts.push('', '### ' + title);
+  var cards = sec.querySelectorAll('.fn.item');
+  if(cards.length){
+    cards.forEach(function(card){
+      parts.push('', '#### ' + _text(card.querySelector('.num')) + ' ' + _text(card.querySelector('.fn-name')));
+      card.querySelectorAll('.sub').forEach(function(s){ parts.push('', _subMd(s)) });
+    });
+    return;
+  }
+  var subs = sec.querySelectorAll('.sub');
+  if(subs.length){ subs.forEach(function(s){ parts.push('', _subMd(s)) }); return }
+  // 用户新增的章节：标题下面一块正文
+  var content = sec.querySelector('h3').parentNode.nextElementSibling;
+  parts.push('', _text(content) || UNKNOWN);
+}
+function aiPrompt(){
+  var parts = [
+    '# 需求：' + moduleName(),
+    '',
+    '你要在代码里实现下面这份需求。它来自一份需求原型 HTML（左侧是可点击的页面原型，右侧是需求说明），我会把原型文件一起给你，布局和交互可以对照原型看。',
+    '',
+    '## 必须遵守',
+    '- 只实现需求说明里写到的功能，说明里没有的不要自行增加。',
+    '- 标为「' + UNKNOWN + '」的内容不要自己补，先问我。',
+    '- 原型里的示例数据、颜色和组件只是示意，以项目现有的代码、组件和规范为准；字段、交互和规则以说明为准。',
+    '- 不确定的地方先问我，不要猜测。动手前先说明你打算改哪些文件。'
+  ];
+  body.querySelectorAll('.menu-pane').forEach(function(pane){
+    parts.push('', '## 菜单：' + (pane.getAttribute('data-label') || pane.getAttribute('data-menu')));
+    pane.querySelectorAll(':scope > section').forEach(function(sec){ _sectionMd(sec, parts) });
+  });
+  return parts.join('\n') + '\n';
+}
+function openAiPrompt(){
+  setEdit(false);
+  document.getElementById('aiPromptText').value = aiPrompt();
+  document.getElementById('aiPromptTip').textContent = '';
+  document.getElementById('aiPromptModal').classList.remove('hidden');
+}
+function closeAiPrompt(){ document.getElementById('aiPromptModal').classList.add('hidden') }
+function copyAiPrompt(){
+  var text = document.getElementById('aiPromptText');
+  var tip = document.getElementById('aiPromptTip');
+  navigator.clipboard.writeText(text.value).then(function(){
+    tip.textContent = '已复制到剪贴板';
+  }, function(e){
+    // 浏览器不允许写剪贴板时，选中全文让用户自己按 Ctrl+C，并说明原因
+    text.focus(); text.select();
+    tip.textContent = '浏览器没有允许写剪贴板（' + e.message + '），已选中全文，请按 Ctrl+C 复制';
+  });
+}
+function downloadAiPrompt(){
+  download(moduleName() + '-AI提示词-' + fileStamp() + '.md', document.getElementById('aiPromptText').value, 'text/markdown');
+}
+document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeAiPrompt() });
+
+// 初始同步右侧 pane（loadSaved 恢复后 class 可能带 hidden，需要纠正）
+window.showMenuPane(document.body.getAttribute('data-active-menu') || 'demo');
+</script>
+</body>
+</html>
