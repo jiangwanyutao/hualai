@@ -182,7 +182,7 @@ Turns business requirements into one HTML file you can open by double-clicking: 
 - The "导出给 AI" button on the prototype's toolbar writes an implementation prompt: only what the spec says, blanks marked as needing confirmation; copy it or download the `.md` for Claude Code / Codex
 - Merging, editing the spec, and Markdown export run the skill's bundled Node scripts, so Node.js is required
 
-You can also skip the command and just say "draw a prototype for XX" or "merge my edited spec back"; Claude picks the skill up automatically.
+You can also skip the command and just say "draw a prototype for XX" or "merge my edited spec back"; Claude picks the skill up automatically. It is not used for pure visual design, polishing an existing interface, or building a website or landing page.
 
 ---
 
