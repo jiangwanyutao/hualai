@@ -3,13 +3,50 @@ const assert = require('assert');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { decide, inject, recentContext } = require('./auto');
+const { spawnSync } = require('child_process');
+const { decide, inject, recentContext, isUnattended, gitBashPath, skillPrompt, claudeArgs } = require('./auto');
 
 const draft = '改下登录页的登录按钮，颜色太淡了';
 assert.strictEqual(decide(draft, true).rewrite, true, 'vague draft gets rewritten when on');
 assert.strictEqual(decide(draft, false).rewrite, undefined, 'off by default');
 assert.strictEqual(decide(draft, true, true).rewrite, undefined, 'child process never recurses');
 assert.strictEqual(decide('继续修', true).rewrite, undefined, 'short reply skipped');
+assert.strictEqual(decide(' 继续 ', true).rewrite, undefined, '继续 skipped');
+assert.strictEqual(decide('continue please', true).rewrite, undefined, 'short english reply skipped');
+assert.strictEqual(decide('继续改登录页', true).rewrite, true, 'exactly 6 units rewritten');
+assert.strictEqual(decide('继续改登录页面', true).rewrite, true, 'over 6 units rewritten');
+assert.strictEqual(decide('继续改登录', true).rewrite, undefined, '5 units skipped');
+assert.strictEqual(decide('fix the login page button color', true).rewrite, true, '6 english words rewritten');
+assert.strictEqual(decide('<task-notification>\n<task-id>b1</task-id>\n<status>completed</status>', true).rewrite, undefined, 'background-task event skipped');
+
+assert.strictEqual(isUnattended({ CLAUDE_CODE_SESSION_ATTENDED: '1', CLAUDE_CODE_ENTRYPOINT: 'cli' }), false, 'interactive session');
+assert.strictEqual(isUnattended({ CLAUDE_CODE_SESSION_ATTENDED: '0', CLAUDE_CODE_ENTRYPOINT: 'sdk-cli' }), true, 'claude -p');
+assert.strictEqual(isUnattended({ CLAUDE_CODE_ENTRYPOINT: 'sdk-ts' }), true, 'Agent SDK');
+assert.strictEqual(isUnattended({ HUALAI_AUTO_CHILD: '1' }), true, "hualai's own child");
+
+// headless session: the real hook prints nothing even when auto mode is on (ON_FLAG under a fake home)
+const home = fs.mkdtempSync(path.join(os.tmpdir(), 'hualai-home-'));
+fs.mkdirSync(path.join(home, '.claude'));
+fs.writeFileSync(path.join(home, '.claude', 'hualai-auto-on'), '');
+const run = spawnSync(process.execPath, [path.join(__dirname, 'auto.js')], {
+  input: JSON.stringify({ prompt: draft }),
+  env: { ...process.env, HOME: home, USERPROFILE: home, HUALAI_AUTO_CHILD: '', CLAUDE_CODE_SESSION_ATTENDED: '0', CLAUDE_CODE_ENTRYPOINT: 'sdk-cli' },
+  encoding: 'utf8',
+});
+fs.rmSync(home, { recursive: true, force: true });
+assert.strictEqual(run.status, 0);
+assert.strictEqual(run.stdout, '', 'headless session: no output, no child spawned');
+
+// Windows: bash.exe found from either git.exe location; other platforms never set it
+const git = fs.mkdtempSync(path.join(os.tmpdir(), 'hualai-git-'));
+for (const d of ['bin', 'cmd', 'mingw64/bin']) fs.mkdirSync(path.join(git, d), { recursive: true });
+for (const f of ['bin/bash.exe', 'cmd/git.exe', 'mingw64/bin/git.exe']) fs.writeFileSync(path.join(git, f), '');
+const bash = path.join(git, 'bin', 'bash.exe');
+assert.strictEqual(gitBashPath({ PATH: path.join(git, 'mingw64', 'bin') }, 'win32'), bash, 'from mingw64\\bin');
+assert.strictEqual(gitBashPath({ PATH: `C:\\nope;${path.join(git, 'cmd')}` }, 'win32'), bash, 'from cmd');
+assert.strictEqual(gitBashPath({ PATH: path.join(git, 'cmd'), CLAUDE_CODE_GIT_BASH_PATH: 'X' }, 'win32'), undefined, 'user setting wins');
+assert.strictEqual(gitBashPath({ PATH: path.join(git, 'cmd') }, 'darwin'), undefined, 'mac untouched');
+fs.rmSync(git, { recursive: true, force: true });
 assert.strictEqual(decide('/hualai:hualai 改下登录页', true).rewrite, undefined, 'slash command skipped');
 assert.strictEqual(decide('照上面的提示词执行吧', true).rewrite, undefined, 'execute-reply skipped');
 assert.deepStrictEqual([decide(' Hualai OFF ', true).toggle, decide('hualai on', false).toggle], ['off', 'on']);
@@ -34,5 +71,46 @@ const rc = recentContext(tp, '再试试');
 fs.rmSync(tp);
 assert.strictEqual(rc, 'User: 把 A、B、C 改上去\n\nAssistant: A 是复用，B 是引用约束', 'text turns only, draft dropped');
 assert.strictEqual(recentContext(undefined, 'x'), '', 'no transcript → no context');
+
+// Codex rollout: user/assistant messages only; injected AGENTS.md, environment and developer lines dropped
+const msg = (role, type, text) => ({ type: 'response_item', payload: { type: 'message', role, content: [{ type, text }] } });
+const cp = path.join(os.tmpdir(), `hualai-codex-${process.pid}.jsonl`);
+fs.writeFileSync(cp, [
+  { type: 'session_meta', payload: {} },
+  msg('developer', 'input_text', 'You are Codex'),
+  msg('user', 'input_text', '# AGENTS.md instructions\n<INSTRUCTIONS>x</INSTRUCTIONS>'),
+  msg('user', 'input_text', '<environment_context>cwd</environment_context>'),
+  msg('user', 'input_text', '把 A 改上去'),
+  { type: 'response_item', payload: { type: 'function_call', name: 'exec' } },
+  msg('assistant', 'output_text', 'A 是复用'),
+  msg('user', 'input_text', '再试试'),
+].map((e) => JSON.stringify(e)).join('\n'));
+const crc = recentContext(cp, '再试试');
+fs.rmSync(cp);
+assert.strictEqual(crc, 'User: 把 A 改上去\n\nAssistant: A 是复用', 'codex rollout text turns only');
+
+// Codex child gets the skill body with the draft filled in and no frontmatter
+const sp = skillPrompt('改下登录页 $1 $&').replace(/\r\n/g, '\n'); // checkouts may be CRLF
+assert.ok(sp.includes('<draft>\n改下登录页 $1 $&\n</draft>'), 'draft inserted verbatim');
+assert.ok(!sp.includes('$ARGUMENTS') && !sp.startsWith('---') && !sp.includes('allowed-tools:'), 'placeholder and frontmatter gone');
+
+// slim Claude child: user settings skipped, hualai loaded from the plugin dir, codegraph + apiKeyHelper carried over
+const fakeHome = fs.mkdtempSync(path.join(os.tmpdir(), 'hualai-cfg-'));
+fs.mkdirSync(path.join(fakeHome, '.claude'));
+fs.writeFileSync(path.join(fakeHome, '.claude.json'), JSON.stringify({ mcpServers: { codegraph: { command: 'codegraph' }, other: { command: 'x' } } }));
+fs.writeFileSync(path.join(fakeHome, '.claude', 'settings.json'), JSON.stringify({ apiKeyHelper: 'get-key.sh', hooks: {} }));
+const saved = { HOME: process.env.HOME, USERPROFILE: process.env.USERPROFILE };
+Object.assign(process.env, { HOME: fakeHome, USERPROFILE: fakeHome });
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'hualai-args-'));
+const args = claudeArgs(tmp, 'ctx', fakeHome).join(' ');
+const bare = claudeArgs(tmp, '', fakeHome).join(' ');
+Object.assign(process.env, saved);
+const unq = (f) => JSON.parse(fs.readFileSync(path.join(tmp, f), 'utf8'));
+assert.ok(args.includes('--setting-sources project,local') && args.includes('--plugin-dir'), 'user settings skipped, plugin loaded directly');
+assert.deepStrictEqual(unq('mcp.json'), { mcpServers: { codegraph: { command: 'codegraph' } } }, 'only codegraph kept');
+assert.deepStrictEqual(unq('settings.json'), { apiKeyHelper: 'get-key.sh' }, 'apiKeyHelper carried over');
+assert.ok(args.includes('--append-system-prompt-file') && !bare.includes('--append-system-prompt-file'), 'context file only when there is context');
+fs.rmSync(tmp, { recursive: true, force: true });
+fs.rmSync(fakeHome, { recursive: true, force: true });
 
 console.log('ok');

@@ -19,6 +19,8 @@ Already installed → `claude plugin marketplace update hualai`, then `claude pl
 
 Check: `claude plugin list` shows `hualai@hualai` as enabled.
 
+Codex (if the user asks for Codex, or uses it instead of Claude Code): `codex plugin marketplace add jiangwanyutao/hualai`, then `codex plugin add hualai@hualai`. Check: `codex plugin list` shows `hualai@hualai` as installed, enabled. In Codex the skill is invoked as `$hualai <draft>`. Auto-enhance needs the user to trust hualai's hook in Codex's `/hooks` screen; you cannot do that for them.
+
 ## 2. Install codegraph (dependency)
 
 Check first: `codegraph --version`.

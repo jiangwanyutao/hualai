@@ -99,6 +99,19 @@ claude plugin update hualai@hualai
 
 `claude plugin list` 里 hualai 的 `Version` 与仓库 [`plugin.json`](.claude-plugin/plugin.json) 一致，就是最新版。
 
+### 在 Codex 里使用
+
+Codex 能直接读取本仓库的 Claude 插件格式（`.claude-plugin/`、`skills/`、`hooks/hooks.json`）：
+
+```bash
+codex plugin marketplace add jiangwanyutao/hualai
+codex plugin add hualai@hualai
+```
+
+- 手动增强：在 Codex 里输入 `$hualai 改下登录页的登录按钮，颜色太淡了`。`--creative`、`--grep`、`--no-scan` 写在草稿前面，用法相同。
+- 自动增强：Codex 要求先审核并信任插件的 hook。安装后在 Codex 里打开 `/hooks`，信任 hualai 的 `UserPromptSubmit` hook，再发 `hualai on`。开关文件和 Claude Code 共用。
+- Codex 下改写由 `codex exec` 子进程完成（只读沙箱、不保存会话、关闭 hook 和插件，所以不会再触发 hualai），使用你在 Codex 里配置的模型。
+
 ### 使用
 
 ```text
@@ -135,8 +148,10 @@ hualai off   # 关闭
 ```
 
 - 开关对所有会话生效，状态存在 `~/.claude/hualai-auto-on`（文件在 = 开）。这两句本身会被拦下，不会发给模型。
-- 不改写：6 个字以内的短回复（「好」「继续」）、`/` 开头的命令、「照上面的提示词执行」。
-- 改写由一个独立的 `claude -p` 子进程（Sonnet）完成，每条消息多等 30–60 秒、多一次调用费用；失败时按原话执行并提示原因。子进程不保存会话（`--no-session-persistence`），不会出现在会话历史里；0.3.0 及更早版本会留下首条消息为 `hualai:hualai` 的碎片会话，升级后可手动删除。
+- 不改写：不到 6 个字的短回复（每个汉字、每个英文单词各算 1 个，如「好」「继续」「continue」）、`/` 开头的命令、「照上面的提示词执行」、后台任务完成通知。
+- 只在有人值守的交互会话里改写：`claude -p`、Agent SDK 等无人值守的会话（例如挂着的监控）以及 hualai 自己的子进程一律跳过。
+- Windows 上会给子进程指定 Git Bash 的位置（`CLAUDE_CODE_GIT_BASH_PATH`，已设置则沿用），避免子进程找不到 Git Bash、改用 PowerShell 运行 hook 而把 Read、Grep、Glob 拦下。
+- 改写由一个独立的 `claude -p` 子进程（Sonnet）完成。子进程不加载用户设置（其他插件、hook），直接从插件目录加载 hualai，MCP 只保留 codegraph，`apiKeyHelper` 照常带上；实测每次改写的 token 和费用比加载全部用户设置时少一半左右。每条消息多等 20–30 秒、多一次调用费用；失败时按原话执行并提示原因。子进程不保存会话（`--no-session-persistence`），不会出现在会话历史里；0.3.0 及更早版本会留下首条消息为 `hualai:hualai` 的碎片会话，升级后可手动删除。
 - 子进程会带上当前会话最近约 6000 字的对话（只取文字，不含工具调用），用来理解「这个」「再试试」这类指代。
 - 在已经聊了很多的会话里，手动 `/hualai:hualai` 更省：它就在当前会话里跑，直接复用已有上下文。
 - 增强后的提示词与你的原话冲突时，以原话为准。

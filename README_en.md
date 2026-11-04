@@ -99,6 +99,19 @@ Then restart Claude Code, or run `/reload-plugins` inside it. You can also use t
 
 If the hualai `Version` in `claude plugin list` matches the repo's [`plugin.json`](.claude-plugin/plugin.json), you are on the latest version.
 
+### Using it in Codex
+
+Codex reads this repo's Claude plugin layout (`.claude-plugin/`, `skills/`, `hooks/hooks.json`) directly:
+
+```bash
+codex plugin marketplace add jiangwanyutao/hualai
+codex plugin add hualai@hualai
+```
+
+- Manual: type `$hualai fix the login button, the color is too pale` in Codex. `--creative`, `--grep` and `--no-scan` go before the draft, same as in Claude Code.
+- Auto-enhance: Codex runs plugin hooks only after you review and trust them. After installing, open `/hooks` in Codex, trust hualai's `UserPromptSubmit` hook, then send `hualai on`. The switch file is shared with Claude Code.
+- In Codex the rewrite runs in a `codex exec` child (read-only sandbox, no saved session, hooks and plugins off so it never re-triggers hualai) with the model you configured in Codex.
+
 ### Usage
 
 ```text
@@ -136,8 +149,10 @@ hualai off   # off
 ```
 
 - The switch applies to all sessions; its state is the file `~/.claude/hualai-auto-on` (present = on). These two messages are intercepted and never reach the model.
-- Not rewritten: replies of 6 characters or fewer ("ok", "go on"), `/` commands, and 「照上面的提示词执行」.
-- The rewrite runs in a separate `claude -p` child process (Sonnet), adding 30–60s and one extra call per message; on failure the original message runs and you are told why. The child does not save its session (`--no-session-persistence`), so it never shows up in your session history; 0.3.0 and earlier left a fragment session starting with `hualai:hualai` per message, which you can delete after upgrading.
+- Not rewritten: replies under 6 units, where each CJK character and each English word counts 1 ("ok", "go on", 「继续」), `/` commands, 「照上面的提示词执行」, and background-task notifications.
+- Only interactive, attended sessions are rewritten: `claude -p`, Agent SDK and other headless sessions (e.g. monitors) and hualai's own child are skipped.
+- On Windows the child is pointed at Git Bash (`CLAUDE_CODE_GIT_BASH_PATH`, kept if you already set it), so it never falls back to running hooks in PowerShell, where bash-style hook commands fail and block Read, Grep and Glob.
+- The rewrite runs in a separate `claude -p` child process (Sonnet). The child skips user settings (other plugins and hooks), loads hualai straight from the plugin directory, keeps only codegraph from MCP, and still passes your `apiKeyHelper`; measured, each rewrite costs about half the tokens and money of a child that loads all user settings. It adds 20–30s and one extra call per message; on failure the original message runs and you are told why. The child does not save its session (`--no-session-persistence`), so it never shows up in your session history; 0.3.0 and earlier left a fragment session starting with `hualai:hualai` per message, which you can delete after upgrading.
 - The child gets the last ~6,000 characters of the current conversation (text only, no tool calls), so references like "this" or "try again" resolve correctly.
 - In a long session, manual `/hualai:hualai` is cheaper: it runs inside the current session and reuses its context.
 - If the enhanced prompt conflicts with your own words, your words win.
