@@ -27,10 +27,12 @@ The name comes from the Chinese「话来」(*huà lái*, "here come the words") 
 - 🌐 **Keeps your language** — Chinese in, Chinese out; code, paths, and error messages are preserved verbatim
 - 🧪 **Verify after coding** — `/hualai:ceshi` turns the latest change, a feature description, or a progress doc into a backend + frontend verification prompt: real interface calls, real browser steps with screenshots
 - 🗂️ **Requirements to prototype** — `/hualai:page-prd` turns business requirements into one HTML file: a clickable admin page on the left (HeroUI styles) and an editable requirement spec on the right, plus a one-click implementation prompt for Claude Code / Codex
-- 🤖 **Auto-enhance (optional)** — After you send `hualai on`, every message is rewritten by hualai before it runs, no command needed; off by default
+- 🤖 **Auto-enhance (optional)** — After you send `hualai on`, every message is rewritten by hualai before it runs, no command needed; off by default. Short replies, background-task notifications and headless sessions are left alone
+- 🧩 **Codex support** — The same plugin installs in Codex: `$hualai <draft>` for manual enhancement, and auto-enhance once you trust its hook
 
 ### News
 
+* **[2026.11]** 🧩 Codex support; auto-enhance skips background-task notifications, headless sessions such as `claude -p`, and short replies (each CJK character and English word counts 1, under 6 is skipped); the rewrite child skips user settings, measured at about half the tokens and cost; fixed the Windows child failing to find Git Bash and getting Read / Grep / Glob blocked by hooks (0.5.0)
 * **[2026.10]** 🗂️ New `/hualai:page-prd`: turns business requirements into a single-file HTML prototype with the page on the left and the requirement spec on the right (0.4.0)
 * **[2026.09]** 🐛 The auto-enhance child no longer saves its session, so your session history no longer gets an extra `hualai:hualai` fragment per message (0.3.1)
 * **[2026.09]** 🧪 New `/hualai:ceshi`: after coding, generates a backend + frontend verification prompt for the latest change
@@ -230,7 +232,7 @@ draft ─→ parse flags ─→ is it clear?
                   rewrite: project context + term definitions + sub-tasks + completion checks
 ```
 
-- Exploration uses read-only tools only (Read / Glob / Grep / codegraph) and finishes within ~6 calls; files this session already looked at are reused, not re-explored.
+- Exploration uses read-only tools only (Read / Glob / Grep / codegraph in Claude Code; codegraph and read-only commands like `rg` and `cat` in Codex) and finishes within ~6 calls; files this session already looked at are reused, not re-explored.
 - Keeps the draft's intent and task stage: it won't turn "implement" into "plan only", or "analyze first" into "just change it".
 
 ---
@@ -283,8 +285,9 @@ Environment: a mid-to-large Vue 3 + Spring Boot project (~9,800 files), Claude C
 - Exploration takes 30–50 seconds; use `--no-scan` if you only want wording polished.
 - For CSS class names and style overrides, codegraph is not faster than Grep; it shines on backend call-chain queries.
 - No need to copy the result: just reply "run the prompt above". Copy it only if you want to edit it first.
-- Auto-enhance works only in Claude Code (it relies on the UserPromptSubmit hook); other coding tools are not supported.
-- Read-only is enforced by the prompt: `allowed-tools` only pre-approves tools and does not block others, so take care in permission-bypass modes.
+- Auto-enhance works in Claude Code and Codex (both rely on the UserPromptSubmit hook); other coding tools are not supported. On Codex only the rewrite child itself has been tested; the plugin hook firing inside a Codex session, manual `$hualai`, and whether headless Codex sessions (e.g. monitors) are detected and skipped are not yet verified. macOS has not been tested on a real machine.
+- The Claude Code rewrite child skips user settings, so hooks from your user settings (e.g. a guard that blocks reading secret files) do not run inside it.
+- In Claude Code, read-only is enforced by the prompt: `allowed-tools` only pre-approves tools and does not block others, so take care in permission-bypass modes. Codex's auto-enhance child runs in a read-only sandbox.
 
 ---
 
