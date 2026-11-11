@@ -27,11 +27,12 @@ The name comes from the Chinese「话来」(*huà lái*, "here come the words") 
 - 🌐 **Keeps your language** — Chinese in, Chinese out; code, paths, and error messages are preserved verbatim
 - 🧪 **Verify after coding** — `/hualai:ceshi` turns the latest change, a feature description, or a progress doc into a backend + frontend verification prompt: real interface calls, real browser steps with screenshots
 - 🗂️ **Requirements to prototype** — `/hualai:page-prd` turns business requirements into one HTML file: a clickable admin page on the left (HeroUI styles) and an editable requirement spec on the right, plus a one-click implementation prompt for Claude Code / Codex
-- 🤖 **Auto-enhance (optional)** — After you send `hualai on`, every message is rewritten by hualai before it runs, no command needed; off by default. Short replies, background-task notifications and supported Claude headless sessions are left alone; Codex headless detection is not verified
+- 🤖 **Auto-enhance (optional)** — After you send `hualai on`, every message is rewritten by hualai before it runs, no command needed; off by default. Short replies, background-task notifications, and recognized Claude and Codex unattended sessions are skipped
 - 🧩 **Codex support** — The same plugin installs in Codex: `$hualai <draft>` for manual enhancement, and auto-enhance once you trust its hook
 
 ### News
 
+* **[2026.11]** Skip recognized Codex subagents and non-interactive sessions; skip safely when session source is unknown (0.5.2)
 * **[2026.11]** Preserve task intent and stage, bound transcript reads, add `hualai status`, and clarify Codex unattended-session limitations (0.5.1)
 * **[2026.11]** 🧩 Codex support; auto-enhance skips background-task notifications, headless sessions such as `claude -p`, and short replies (each CJK character and English word counts 1, under 6 is skipped); the rewrite child skips user settings, measured at about half the tokens and cost; fixed the Windows child failing to find Git Bash and getting Read / Grep / Glob blocked by hooks (0.5.0)
 * **[2026.10]** 🗂️ New `/hualai:page-prd`: turns business requirements into a single-file HTML prototype with the page on the left and the requirement spec on the right (0.4.0)
@@ -154,7 +155,7 @@ hualai status # show the switch state
 
 - The switch applies to all sessions; its state is the file `~/.claude/hualai-auto-on` (present = on). These two messages are intercepted and never reach the model.
 - Not rewritten: replies under 6 units, where each CJK character and each English word counts 1 ("ok", "go on", 「继续」), `/` commands, 「照上面的提示词执行」, and background-task notifications.
-- Claude `claude -p`, Agent SDK and hualai's own child are skipped. Codex headless sessions are not reliably detected; turn auto-enhance off before automation.
+- Claude `claude -p`, Agent SDK and hualai's own child are skipped. Codex `exec` and subagents are skipped based on transcript session metadata. Missing or unknown metadata also skips enhancement, including in some interactive sessions; transcript format is not a stable API. For monitors using an interactive CLI source, set `HUALAI_AUTO_SKIP=1` or run with `--disable hooks` without changing the global switch.
 - On Windows the child is pointed at Git Bash (`CLAUDE_CODE_GIT_BASH_PATH`, kept if you already set it), so it never falls back to running hooks in PowerShell, where bash-style hook commands fail and block Read, Grep and Glob.
 - The rewrite runs in a separate `claude -p` child process (Sonnet). The child skips user settings (other plugins and hooks), loads hualai straight from the plugin directory, keeps only codegraph from MCP, and still passes your `apiKeyHelper`; measured, each rewrite costs about half the tokens and money of a child that loads all user settings. It adds 20–30s and one extra call per message; on failure the original message runs and you are told why. The child does not save its session (`--no-session-persistence`), so it never shows up in your session history; 0.3.0 and earlier left a fragment session starting with `hualai:hualai` per message, which you can delete after upgrading.
 - The child receives up to ~6,000 characters of conversation text (no tool calls); do not include sensitive information you do not want sent to the model. Only the last 1 MiB of transcript is scanned, so oversized lines or older context may be omitted.
@@ -287,7 +288,7 @@ Environment: a mid-to-large Vue 3 + Spring Boot project (~9,800 files), Claude C
 - Exploration takes 30–50 seconds; use `--no-scan` if you only want wording polished.
 - For CSS class names and style overrides, codegraph is not faster than Grep; it shines on backend call-chain queries.
 - No need to copy the result: just reply "run the prompt above". Copy it only if you want to edit it first.
-- Auto-enhance works in Claude Code and Codex (both rely on the UserPromptSubmit hook); other coding tools are not supported. On Codex only the rewrite child itself has been tested; the plugin hook firing inside a Codex session, manual `$hualai`, and whether headless Codex sessions (e.g. monitors) are detected and skipped are not yet verified. macOS has not been tested on a real machine.
+- Auto-enhance works in Claude Code and Codex (both rely on the UserPromptSubmit hook); other coding tools are not supported. Codex session-source detection relies on an unstable transcript format. Subagent and `exec` skipping has been tested against local session samples, not every runtime; monitors with an interactive CLI source need an explicit opt-out. macOS has not been tested on a real machine.
 - The Claude Code rewrite child skips user settings, so hooks from your user settings (e.g. a guard that blocks reading secret files) do not run inside it.
 - In Claude Code, read-only is enforced by the prompt: `allowed-tools` only pre-approves tools and does not block others, so take care in permission-bypass modes. Codex's auto-enhance child runs in a read-only sandbox.
 

@@ -4,7 +4,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { spawnSync } = require('child_process');
-const { decide, inject, recentContext, isUnattended, gitBashPath, skillPrompt, claudeArgs } = require('./auto');
+const { decide, inject, recentContext, isUnattended, codexUnattended, gitBashPath, skillPrompt, claudeArgs } = require('./auto');
 
 const draft = '改下登录页的登录按钮，颜色太淡了';
 assert.strictEqual(decide(draft, true).rewrite, true, 'vague draft gets rewritten when on');
@@ -24,6 +24,33 @@ assert.strictEqual(isUnattended({ CLAUDE_CODE_SESSION_ATTENDED: '0', CLAUDE_CODE
 assert.strictEqual(isUnattended({ CLAUDE_CODE_ENTRYPOINT: 'sdk-ts' }), true, 'Agent SDK');
 assert.strictEqual(isUnattended({ HUALAI_AUTO_CHILD: '1' }), true, "hualai's own child");
 
+// Codex session source comes from the first transcript record, never from the prompt.
+const sourceDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hualai-sources-'));
+try {
+  const sourceFile = (name, source) => {
+    const file = path.join(sourceDir, name + '.jsonl');
+    fs.writeFileSync(file, JSON.stringify({ type: 'session_meta', payload: { source } }) + '\n');
+    return file;
+  };
+  const main = sourceFile('main', 'vscode');
+  const cli = sourceFile('cli', 'cli');
+  const exec = sourceFile('monitor', 'exec');
+  const child1 = sourceFile('child1', { subagent: { thread_spawn: { depth: 1 } } });
+  const child2 = sourceFile('child2', { subagent: { thread_spawn: { depth: 2 } } });
+  assert.strictEqual(codexUnattended(main, {}), false, 'interactive main session');
+  assert.strictEqual(codexUnattended(cli, {}), false, 'interactive CLI');
+  const overriddenExec = path.join(sourceDir, 'overridden-exec.jsonl');
+  fs.writeFileSync(overriddenExec, JSON.stringify({ type: 'session_meta', payload: { source: 'cli', originator: 'codex_exec' } }) + '\n');
+  assert.strictEqual(codexUnattended(overriddenExec, {}), true, 'exec with overridden source skipped');
+  for (const file of [exec, child1, child2]) assert.strictEqual(codexUnattended(file, {}), true, 'exec and concurrent child sessions skipped');
+  assert.strictEqual(codexUnattended(main, { HUALAI_AUTO_SKIP: '1' }), true, 'explicit monitor override');
+  assert.strictEqual(codexUnattended(undefined, {}), true, 'missing transcript fails closed');
+  fs.writeFileSync(main, '{broken}\n');
+  assert.strictEqual(codexUnattended(main, {}), true, 'invalid metadata fails closed');
+} finally {
+  fs.rmSync(sourceDir, { recursive: true, force: true });
+}
+
 // headless session: the real hook prints nothing even when auto mode is on (ON_FLAG under a fake home)
 const home = fs.mkdtempSync(path.join(os.tmpdir(), 'hualai-home-'));
 fs.mkdirSync(path.join(home, '.claude'));
@@ -42,10 +69,12 @@ const fakeCodexHome = fs.mkdtempSync(path.join(os.tmpdir(), 'hualai-codex-e2e-')
 try {
   fs.mkdirSync(path.join(fakeCodexHome, '.claude'));
   fs.writeFileSync(path.join(fakeCodexHome, '.claude', 'hualai-auto-on'), '');
+  const transcript = path.join(fakeCodexHome, 'transcript.jsonl');
+  fs.writeFileSync(transcript, JSON.stringify({ type: 'session_meta', payload: { source: 'cli' } }) + '\n');
   const executable = process.platform === 'win32' ? 'codex.cmd' : 'codex';
   fs.writeFileSync(path.join(fakeCodexHome, executable), process.platform === 'win32' ? '@echo enhanced-test\r\n' : '#!/bin/sh\nprintf enhanced-test\n', { mode: 0o755 });
   const result = spawnSync(process.execPath, [path.join(__dirname, 'auto.js')], {
-    input: JSON.stringify({ prompt: draft, turn_id: 'test', cwd: fakeCodexHome }),
+    input: JSON.stringify({ prompt: draft, turn_id: 'test', cwd: fakeCodexHome, transcript_path: transcript }),
     env: { ...process.env, HOME: fakeCodexHome, USERPROFILE: fakeCodexHome, PATH: fakeCodexHome, HUALAI_AUTO_CHILD: '', CLAUDE_CODE_SESSION_ATTENDED: '1', CLAUDE_CODE_ENTRYPOINT: '' },
     encoding: 'utf8', timeout: 10000,
   });
@@ -53,6 +82,17 @@ try {
   const event = JSON.parse(result.stdout);
   assert.ok(event.hookSpecificOutput.additionalContext.includes('enhanced-test'), 'Codex child result is injected');
   assert.ok(event.systemMessage.includes('enhanced-test'), 'rewrite is displayed');
+  for (const source of ['exec', { subagent: { thread_spawn: {} } }, { subagent: { thread_spawn: { depth: 2 } } }, 'unknown']) {
+    fs.writeFileSync(transcript, JSON.stringify({ type: 'session_meta', payload: { source } }) + '\n');
+    const skipped = spawnSync(process.execPath, [path.join(__dirname, 'auto.js')], {
+      input: JSON.stringify({ prompt: draft, turn_id: 'test', cwd: fakeCodexHome, transcript_path: transcript }),
+      env: { ...process.env, HOME: fakeCodexHome, USERPROFILE: fakeCodexHome, PATH: fakeCodexHome, HUALAI_AUTO_CHILD: '', CLAUDE_CODE_SESSION_ATTENDED: '1', CLAUDE_CODE_ENTRYPOINT: '' },
+      encoding: 'utf8', timeout: 10000,
+    });
+    assert.strictEqual(skipped.status, 0);
+    assert.strictEqual(skipped.stdout, '', 'unattended or unknown Codex source does not spawn rewrite');
+  }
+
 } finally {
   fs.rmSync(fakeCodexHome, { recursive: true, force: true });
 }

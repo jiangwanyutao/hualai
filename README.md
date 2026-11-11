@@ -27,11 +27,12 @@ hualai 是一个 **Claude Code 插件**：你随手写一句草稿，它先**只
 - 🌐 **保持原语言** — 中文草稿输出中文，代码、路径、报错原文逐字保留
 - 🧪 **写完就验证** — `/hualai:ceshi` 按这次改动、一句功能描述或一份进度文档生成前后端验证提示词：接口真实调用、页面真实操作并截图
 - 🗂️ **需求画成原型** — `/hualai:page-prd` 把业务需求画成单个 HTML 文件：左边是可点击的后台页面（HeroUI 样式），右边是可在线编辑的需求说明，还能一键导出给 Claude Code / Codex 的实现提示词
-- 🤖 **自动增强（可选）** — 发 `hualai on` 后，每条消息先经 hualai 改写再执行，不用再手敲命令；默认关闭。短回复、后台任务通知以及可识别的 Claude 无人值守会话不改写；Codex 无人值守识别尚未验证
+- 🤖 **自动增强（可选）** — 发 `hualai on` 后，每条消息先经 hualai 改写再执行，不用再手敲命令；默认关闭。短回复、后台任务通知以及可识别的 Claude / Codex 无人值守会话不改写
 - 🧩 **支持 Codex** — 同一个插件可装进 Codex：`$hualai 草稿` 手动增强，信任 hook 后也能自动增强
 
 ### 最新动态
 
+* **[2026.11]** Codex 自动增强跳过可识别的子代理和非交互会话；来源未知时安全跳过（0.5.2）
 * **[2026.11]** 修正改写时的意图与任务阶段约束，限制长会话读取，新增 `hualai status`；明确 Codex 无人值守识别的限制（0.5.1）
 * **[2026.11]** 🧩 支持 Codex；自动增强跳过后台任务通知、`claude -p` 等无人值守会话和短回复（汉字、英文单词各算 1 个，不到 6 个不改写）；改写子进程不加载用户设置，实测 token 和费用约减半；修复 Windows 上子进程找不到 Git Bash、Read / Grep / Glob 被 hook 拦下的问题（0.5.0）
 * **[2026.10]** 🗂️ 新增 `/hualai:page-prd`：把业务需求画成「左边页面、右边需求说明」的单文件 HTML 原型（0.4.0）
@@ -112,7 +113,7 @@ codex plugin add hualai@hualai
 ```
 
 - 手动增强：在 Codex 里输入 `$hualai 改下登录页的登录按钮，颜色太淡了`。`--creative`、`--grep`、`--no-scan` 写在草稿前面，用法相同。
-- 自动增强：Codex 要求先审核并信任插件的 hook。安装后在 Codex 里打开 `/hooks`，信任 hualai 的 `UserPromptSubmit` hook，再发 `hualai on`。开关文件和 Claude Code 共用。
+- 自动增强：Codex 要求先审核并信任插件的 hook。安装后在 Codex 里打开 `/hooks`，信任 hualai 的 `UserPromptSubmit` hook，再发 `hualai on`。开关文件和 Claude Code 共用。Codex 无法获取可识别的会话来源时会跳过增强；以交互 CLI 来源运行的监控可在启动该进程时设置 `HUALAI_AUTO_SKIP=1`，或使用 `--disable hooks`，不会改变其他会话的开关。
 - Codex 下改写由 `codex exec` 子进程完成（只读沙箱、不保存会话、关闭 hook 和插件，所以不会再触发 hualai），使用你在 Codex 里配置的模型。
 
 ### 使用
@@ -153,7 +154,7 @@ hualai status # 查看开关状态
 
 - 开关对所有会话生效，状态存在 `~/.claude/hualai-auto-on`（文件在 = 开）。这两句本身会被拦下，不会发给模型。
 - 不改写：不到 6 个字的短回复（每个汉字、每个英文单词各算 1 个，如「好」「继续」「continue」）、`/` 开头的命令、「照上面的提示词执行」、后台任务完成通知。
-- Claude 的 `claude -p`、Agent SDK 和 hualai 自己的子进程会跳过。Codex 的后台或非交互会话尚无法可靠区分；自动化任务请先关闭自动增强。
+- Claude 的 `claude -p`、Agent SDK 和 hualai 自己的子进程会跳过。Codex 根据 transcript 的会话来源跳过 `exec` 和子代理；来源缺失或无法识别时也跳过，可能导致部分交互会话不增强。transcript 格式不是稳定接口。
 - Windows 上会给子进程指定 Git Bash 的位置（`CLAUDE_CODE_GIT_BASH_PATH`，已设置则沿用），避免子进程找不到 Git Bash、改用 PowerShell 运行 hook 而把 Read、Grep、Glob 拦下。
 - 改写由一个独立的 `claude -p` 子进程（Sonnet）完成。子进程不加载用户设置（其他插件、hook），直接从插件目录加载 hualai，MCP 只保留 codegraph，`apiKeyHelper` 照常带上；实测每次改写的 token 和费用比加载全部用户设置时少一半左右。每条消息多等 20–30 秒、多一次调用费用；失败时按原话执行并提示原因。子进程不保存会话（`--no-session-persistence`），不会出现在会话历史里；0.3.0 及更早版本会留下首条消息为 `hualai:hualai` 的碎片会话，升级后可手动删除。
 - 子进程会带上当前会话最近约 6000 字的对话（只取文字，不含工具调用），用来理解「这个」「再试试」这类指代；请避免在对话中输入不希望发送给模型的敏感信息。为限制长会话开销，仅扫描 transcript 末尾 1 MiB，超大单行或更早内容可能被省略。
@@ -286,7 +287,7 @@ hualai status # 查看开关状态
 - 探查需要 30–50 秒；只想润色文字请用 `--no-scan`。
 - 对 CSS 类名、样式覆盖这类需求，codegraph 并不比 Grep 快，其优势在后端调用链查询。
 - 改写结果不用手动复制：直接回复「照上面的提示词执行」即可。想先改几句再发，仍需复制。
-- 自动增强支持 Claude Code 和 Codex（都依赖 UserPromptSubmit hook），其他编程工具未适配。Codex 上目前只实测过改写子进程本身；插件 hook 在 Codex 会话里的触发、`$hualai` 手动调用、Codex 里挂着的监控会话能否被识别跳过，都还没有实测。macOS 未实机验证。
+- 自动增强支持 Claude Code 和 Codex（都依赖 UserPromptSubmit hook），其他编程工具未适配。Codex 来源判断依赖非稳定的 transcript 格式；子代理和 `exec` 的跳过逻辑已按本机会话样本测试，尚未覆盖所有运行环境。以交互 CLI 来源运行的监控无法自动区分，应显式跳过。macOS 未实机验证。
 - Claude Code 的改写子进程不加载用户设置，所以你在用户设置里配的 hook（例如防止读取密钥文件的守卫）不会在子进程里运行。
 - 「只读」在 Claude Code 里靠提示词约束：`allowed-tools` 只是免确认放行，并不禁用其他工具，在跳过权限确认的模式下尤其要留意。Codex 的自动增强子进程跑在只读沙箱里。
 

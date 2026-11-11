@@ -31,6 +31,29 @@ function isUnattended(env = process.env) {
   return env[CHILD_ENV] === '1' || env.CLAUDE_CODE_SESSION_ATTENDED === '0' || String(env.CLAUDE_CODE_ENTRYPOINT || '').startsWith('sdk');
 }
 
+/** Codex transcripts start with session_meta. Unknown or missing metadata fails closed. */
+function codexUnattended(transcriptPath, env = process.env) {
+  if (env.HUALAI_AUTO_SKIP === '1') return true;
+  if (!transcriptPath) return true;
+  let fd;
+  try {
+    fd = fs.openSync(transcriptPath, 'r');
+    const buffer = Buffer.alloc(65536);
+    const bytes = fs.readSync(fd, buffer, 0, buffer.length, 0);
+    const end = buffer.indexOf(10, 0);
+    if (end < 0 || end >= bytes) return true;
+    const entry = JSON.parse(buffer.subarray(0, end).toString('utf8'));
+    if (entry.type !== 'session_meta') return true;
+    const meta = entry.payload || {};
+    if (meta.originator === 'codex_exec') return true;
+    return meta.source !== 'cli' && meta.source !== 'vscode';
+  } catch {
+    return true;
+  } finally {
+    if (fd !== undefined) fs.closeSync(fd);
+  }
+}
+
 /**
  * Windows: the hook may run under Git Bash with mingw64\bin\git.exe first on PATH; the child then cannot
  * derive bash.exe from it, runs every hook in PowerShell, and bash-style hook commands fail and block its tools.
@@ -198,6 +221,8 @@ function main() {
       process.exit(0); // never block the user's prompt because of the hook
     }
     const prompt = String(hook.prompt || '');
+    const host = 'turn_id' in hook ? 'codex' : 'claude';
+    if (host === 'codex' && codexUnattended(hook.transcript_path)) return;
     const { toggle, rewrite: needsRewrite, out } = decide(prompt, fs.existsSync(ON_FLAG), isUnattended());
     if (toggle === 'on') fs.mkdirSync(path.dirname(ON_FLAG), { recursive: true }); // Codex-only machines may lack ~/.claude
     if (toggle === 'on') fs.writeFileSync(ON_FLAG, '');
@@ -205,7 +230,6 @@ function main() {
     if (out) return process.stdout.write(JSON.stringify(out));
     if (!needsRewrite) return;
     try {
-      const host = 'turn_id' in hook ? 'codex' : 'claude'; // only Codex's UserPromptSubmit input carries turn_id
       process.stdout.write(JSON.stringify(inject(rewrite(prompt, hook.cwd, hook.transcript_path, host))));
     } catch (e) {
       // fall back to the raw prompt; tell the user why it was not enhanced
@@ -215,4 +239,4 @@ function main() {
 }
 
 if (require.main === module) main();
-module.exports = { decide, inject, recentContext, isUnattended, gitBashPath, skillPrompt, claudeArgs };
+module.exports = { decide, inject, recentContext, isUnattended, codexUnattended, gitBashPath, skillPrompt, claudeArgs };
