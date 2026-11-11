@@ -37,6 +37,26 @@ fs.rmSync(home, { recursive: true, force: true });
 assert.strictEqual(run.status, 0);
 assert.strictEqual(run.stdout, '', 'headless session: no output, no child spawned');
 
+// Exercise the hook entry point with a fake Codex executable, without a model request.
+const fakeCodexHome = fs.mkdtempSync(path.join(os.tmpdir(), 'hualai-codex-e2e-'));
+try {
+  fs.mkdirSync(path.join(fakeCodexHome, '.claude'));
+  fs.writeFileSync(path.join(fakeCodexHome, '.claude', 'hualai-auto-on'), '');
+  const executable = process.platform === 'win32' ? 'codex.cmd' : 'codex';
+  fs.writeFileSync(path.join(fakeCodexHome, executable), process.platform === 'win32' ? '@echo enhanced-test\r\n' : '#!/bin/sh\nprintf enhanced-test\n', { mode: 0o755 });
+  const result = spawnSync(process.execPath, [path.join(__dirname, 'auto.js')], {
+    input: JSON.stringify({ prompt: draft, turn_id: 'test', cwd: fakeCodexHome }),
+    env: { ...process.env, HOME: fakeCodexHome, USERPROFILE: fakeCodexHome, PATH: fakeCodexHome, HUALAI_AUTO_CHILD: '', CLAUDE_CODE_SESSION_ATTENDED: '1', CLAUDE_CODE_ENTRYPOINT: '' },
+    encoding: 'utf8', timeout: 10000,
+  });
+  assert.strictEqual(result.status, 0, 'Codex hook exits successfully');
+  const event = JSON.parse(result.stdout);
+  assert.ok(event.hookSpecificOutput.additionalContext.includes('enhanced-test'), 'Codex child result is injected');
+  assert.ok(event.systemMessage.includes('enhanced-test'), 'rewrite is displayed');
+} finally {
+  fs.rmSync(fakeCodexHome, { recursive: true, force: true });
+}
+
 // Windows: bash.exe found from either git.exe location; other platforms never set it
 const git = fs.mkdtempSync(path.join(os.tmpdir(), 'hualai-git-'));
 for (const d of ['bin', 'cmd', 'mingw64/bin']) fs.mkdirSync(path.join(git, d), { recursive: true });
@@ -51,6 +71,13 @@ assert.strictEqual(decide('/hualai:hualai 改下登录页', true).rewrite, undef
 assert.strictEqual(decide('照上面的提示词执行吧', true).rewrite, undefined, 'execute-reply skipped');
 assert.deepStrictEqual([decide(' Hualai OFF ', true).toggle, decide('hualai on', false).toggle], ['off', 'on']);
 assert.strictEqual(decide('hualai on', false).out.decision, 'block', 'toggle never reaches the model');
+
+for (const [enabled, expected] of [[true, '已开启'], [false, '已关闭']]) {
+  const status = decide('hualai status', enabled);
+  assert.strictEqual(status.out.decision, 'block', 'status stays out of model prompt');
+  assert.ok(status.out.reason.includes(expected), 'status reports the current state');
+  assert.strictEqual(status.toggle, undefined, 'status does not change state');
+}
 
 const out = inject('把按钮调深。\n\n---\n（给你的提示，不属于提示词）当前项目没有 codegraph 索引。');
 const ctx = out.hookSpecificOutput.additionalContext;
@@ -88,6 +115,29 @@ fs.writeFileSync(cp, [
 const crc = recentContext(cp, '再试试');
 fs.rmSync(cp);
 assert.strictEqual(crc, 'User: 把 A 改上去\n\nAssistant: A 是复用', 'codex rollout text turns only');
+
+// Large transcripts: read a bounded tail, discard a partial leading JSONL record,
+// preserve UTF-8 text and remove the current draft from the recent context.
+const large = path.join(os.tmpdir(), `hualai-large-${process.pid}.jsonl`);
+fs.writeFileSync(large, JSON.stringify(msg('user', 'input_text', '旧'.repeat(500000))) + '\n' + [
+  msg('user', 'input_text', '请保留中文和🙂'),
+  msg('assistant', 'output_text', '已理解，不联网'),
+  msg('user', 'input_text', '继续处理这个问题'),
+].map(JSON.stringify).join('\n'));
+const originalReadFileSync = fs.readFileSync;
+try {
+  fs.readFileSync = function(file, ...args) {
+    if (file === large) throw new Error('transcript must not be read entirely');
+    return originalReadFileSync.call(this, file, ...args);
+  };
+  const tail = recentContext(large, '继续处理这个问题');
+  assert.ok(tail.endsWith('User: 请保留中文和🙂\n\nAssistant: 已理解，不联网'), 'tail keeps UTF-8 records and removes draft');
+  assert.ok(!tail.includes('�') && !tail.includes('继续处理这个问题'), 'no broken UTF-8 or duplicated draft');
+  assert.ok(tail.length <= 6000, 'context is bounded');
+} finally {
+  fs.readFileSync = originalReadFileSync;
+  fs.rmSync(large);
+}
 
 // Codex child gets the skill body with the draft filled in and no frontmatter
 const sp = skillPrompt('改下登录页 $1 $&').replace(/\r\n/g, '\n'); // checkouts may be CRLF

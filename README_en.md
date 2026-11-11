@@ -27,11 +27,12 @@ The name comes from the Chinese「话来」(*huà lái*, "here come the words") 
 - 🌐 **Keeps your language** — Chinese in, Chinese out; code, paths, and error messages are preserved verbatim
 - 🧪 **Verify after coding** — `/hualai:ceshi` turns the latest change, a feature description, or a progress doc into a backend + frontend verification prompt: real interface calls, real browser steps with screenshots
 - 🗂️ **Requirements to prototype** — `/hualai:page-prd` turns business requirements into one HTML file: a clickable admin page on the left (HeroUI styles) and an editable requirement spec on the right, plus a one-click implementation prompt for Claude Code / Codex
-- 🤖 **Auto-enhance (optional)** — After you send `hualai on`, every message is rewritten by hualai before it runs, no command needed; off by default. Short replies, background-task notifications and headless sessions are left alone
+- 🤖 **Auto-enhance (optional)** — After you send `hualai on`, every message is rewritten by hualai before it runs, no command needed; off by default. Short replies, background-task notifications and supported Claude headless sessions are left alone; Codex headless detection is not verified
 - 🧩 **Codex support** — The same plugin installs in Codex: `$hualai <draft>` for manual enhancement, and auto-enhance once you trust its hook
 
 ### News
 
+* **[2026.11]** Preserve task intent and stage, bound transcript reads, add `hualai status`, and clarify Codex unattended-session limitations (0.5.1)
 * **[2026.11]** 🧩 Codex support; auto-enhance skips background-task notifications, headless sessions such as `claude -p`, and short replies (each CJK character and English word counts 1, under 6 is skipped); the rewrite child skips user settings, measured at about half the tokens and cost; fixed the Windows child failing to find Git Bash and getting Read / Grep / Glob blocked by hooks (0.5.0)
 * **[2026.10]** 🗂️ New `/hualai:page-prd`: turns business requirements into a single-file HTML prototype with the page on the left and the requirement spec on the right (0.4.0)
 * **[2026.09]** 🐛 The auto-enhance child no longer saves its session, so your session history no longer gets an extra `hualai:hualai` fragment per message (0.3.1)
@@ -148,14 +149,15 @@ Off by default. Send these in Claude Code as plain messages (no slash):
 ```text
 hualai on    # on: every message is first rewritten by hualai; the result is shown to you, injected into the session, then carried out
 hualai off   # off
+hualai status # show the switch state
 ```
 
 - The switch applies to all sessions; its state is the file `~/.claude/hualai-auto-on` (present = on). These two messages are intercepted and never reach the model.
 - Not rewritten: replies under 6 units, where each CJK character and each English word counts 1 ("ok", "go on", 「继续」), `/` commands, 「照上面的提示词执行」, and background-task notifications.
-- Only interactive, attended sessions are rewritten: `claude -p`, Agent SDK and other headless sessions (e.g. monitors) and hualai's own child are skipped.
+- Claude `claude -p`, Agent SDK and hualai's own child are skipped. Codex headless sessions are not reliably detected; turn auto-enhance off before automation.
 - On Windows the child is pointed at Git Bash (`CLAUDE_CODE_GIT_BASH_PATH`, kept if you already set it), so it never falls back to running hooks in PowerShell, where bash-style hook commands fail and block Read, Grep and Glob.
 - The rewrite runs in a separate `claude -p` child process (Sonnet). The child skips user settings (other plugins and hooks), loads hualai straight from the plugin directory, keeps only codegraph from MCP, and still passes your `apiKeyHelper`; measured, each rewrite costs about half the tokens and money of a child that loads all user settings. It adds 20–30s and one extra call per message; on failure the original message runs and you are told why. The child does not save its session (`--no-session-persistence`), so it never shows up in your session history; 0.3.0 and earlier left a fragment session starting with `hualai:hualai` per message, which you can delete after upgrading.
-- The child gets the last ~6,000 characters of the current conversation (text only, no tool calls), so references like "this" or "try again" resolve correctly.
+- The child receives up to ~6,000 characters of conversation text (no tool calls); do not include sensitive information you do not want sent to the model. Only the last 1 MiB of transcript is scanned, so oversized lines or older context may be omitted.
 - In a long session, manual `/hualai:hualai` is cheaper: it runs inside the current session and reuses its context.
 - If the enhanced prompt conflicts with your own words, your words win.
 

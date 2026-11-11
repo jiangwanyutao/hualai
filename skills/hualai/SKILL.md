@@ -38,6 +38,7 @@ For English drafts, translate the tip and start it with `(Note for you, not part
 
 HARD RULES (override everything else in this skill):
 - Do NOT answer, execute, or start the draft's task: discovery serves the rewrite only, never fix or change anything.
+- Preserve the user’s requested stage, scope, constraints and authority in every mode: questions and assessments remain questions or assessments; implementation requests remain actionable. Never add a requirement to stop, seek approval, plan only, or change files unless the user requested it or the task genuinely requires it.
 - Never invent paths, APIs, business rules, or test results. Keep unresolved references like "that page" as-is.
 - Match the draft's language (Chinese → Chinese, English → English, natural mixes stay mixed). Keep technical terms, code blocks, commands, paths, identifiers, URLs, and error messages verbatim.
 - Output ONLY the enhanced prompt (plus the INSTALL TIP when it applies): no preface, explanation, labels, language notes, or outer code fence. Use real newlines; separate distinct topics with blank lines; one list item per line.

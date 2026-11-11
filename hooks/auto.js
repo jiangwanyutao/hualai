@@ -12,6 +12,7 @@ const ON_FLAG = path.join(os.homedir(), '.claude', 'hualai-auto-on');
 const CHILD_ENV = 'HUALAI_AUTO_CHILD'; // set on the child so its own hook run is skipped (no recursion)
 const MIN_UNITS = 6; // fewer units (好 / 继续 / 继续修 / continue / go on) are replies, not drafts
 const CHILD_TIMEOUT_MS = 150000; // keep below the hook `timeout` in hooks/hooks.json (180s)
+const TRANSCRIPT_TAIL_BYTES = 1024 * 1024; // bound work for large sessions; oversized individual lines may be omitted
 const CONTEXT_CHARS = 6000; // tail of the conversation handed to the child as background
 const CONTEXT_INTRO =
   'The conversation right before the draft, as background for resolving what the draft refers to ' +
@@ -48,6 +49,9 @@ function gitBashPath(env = process.env, platform = process.platform) {
 function decide(prompt, isOn, isChild = false) {
   const p = prompt.trim();
   const cmd = p.toLowerCase();
+  if (cmd === 'hualai status') {
+    return { out: { decision: 'block', reason: `hualai 自动增强：${isOn ? '已开启' : '已关闭'}（发 hualai on / hualai off 切换）` } };
+  }
   if (cmd === 'hualai on' || cmd === 'hualai off') {
     const on = cmd === 'hualai on';
     return { toggle: on ? 'on' : 'off', out: { decision: 'block', reason: on ? 'hualai 自动增强：已开启（发 hualai off 关闭）' : 'hualai 自动增强：已关闭（发 hualai on 开启）' } };
@@ -77,7 +81,22 @@ function inject(enhanced) {
 function recentContext(transcriptPath, prompt) {
   if (!transcriptPath || !fs.existsSync(transcriptPath)) return '';
   const turns = [];
-  for (const line of fs.readFileSync(transcriptPath, 'utf8').split('\n')) {
+  const fd = fs.openSync(transcriptPath, 'r');
+  let tail;
+  try {
+    const size = fs.fstatSync(fd).size;
+    const start = Math.max(0, size - TRANSCRIPT_TAIL_BYTES);
+    const buffer = Buffer.alloc(size - start);
+    const bytes = fs.readSync(fd, buffer, 0, buffer.length, start);
+    tail = buffer.subarray(0, bytes).toString('utf8');
+    if (start > 0) {
+      const newline = tail.indexOf('\n');
+      tail = newline < 0 ? '' : tail.slice(newline + 1);
+    }
+  } finally {
+    fs.closeSync(fd);
+  }
+  for (const line of tail.split('\n')) {
     let e;
     try {
       e = JSON.parse(line);
